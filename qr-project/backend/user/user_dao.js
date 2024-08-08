@@ -36,8 +36,7 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
       conn = await this.pool.getConnection(); // pool을 통해 connection을 할당받음
       await conn.beginTransaction(); // transaction 시작
 
-      let result,
-        field = null;
+      let result,field = null;
       for (const sql of sqls) {
         //여러 sql문을 받아 transaction 단위로 처리하기 위해 for문 사용
         if (!values) {
@@ -49,8 +48,8 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
         }
       }
       await conn.commit();
-
       return result;
+      
     } catch (err) {
       if (!conn) {
         throw new Error("Connection is NULL");
@@ -78,14 +77,14 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
       );
     } catch (err) {
       console.error("database query [sign_up] is problem: " + err.stack);
-      throw err;w
+      throw err;
     }
   }
 
   async sign_in(id, password) {
     //로그인
     try {
-      let sql = "select count(*) from user where id = ? and password = ?;";
+      let sql = "select count(*) from USER where id = ? and password = ?;";
       let values = [id, password];
       const [result] = await this.transaction([sql], values);
       return result; // 1이면 성공 0이면 실패
@@ -98,7 +97,7 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
   async find_id(email) {
     // 아이디 찾기
     let sql =
-      "select replace(id, substr(id,3,2),'**' ) from user where email = ?;";
+      "select replace(id, substr(id,3,2),'**' ) from USER where email = ?;";
     let values = [email];
     const [result] = await this.transaction([sql], values);
     return result;
@@ -106,7 +105,7 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
 
   async find_password(id, email) {
     //비밀번호 찾기 - 이메일 아이디 입력 시 비밀번호 유무 체크
-    let sql = "select count(password) from user where id = ? and email = ?;";
+    let sql = "select count(password) from USER where id = ? and email = ?;";
     let values = [id, email];
     const [result] = await this.transaction([sql], values);
     return result; // 1 이면 비밀번호 맞음 0 이면 아이디나 비밀번호 틀림
@@ -114,7 +113,7 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
 
   async change_password(id, password) {
     //비밀번호 변경
-    let sql = "update user set password = ? where id = ?;";
+    let sql = "update USER set password = ? where id = ?;";
     let values = [password, id];
     const [result] = await this.transaction([sql], values);
     console.log(
@@ -124,7 +123,7 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
 
   async user_access_change(grade_status, id) {
     // 유저 권한 변경 / 0은 일반 사용자 1은 택배원 2는 관리자
-    let sql = "update user set grade_status = ? where id = ?;";
+    let sql = "update USER set grade_status = ? where id = ?;";
     let values = [grade_status, id];
     const [result] = await this.transaction([sql], values);
     console.log(
@@ -135,7 +134,7 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
   async user_select() {
     // 유저 조회
     let sql =
-      "select id,name,email, grade_status from user where grade_status = 0 or grade_status = 1;";
+      "select id,name,email, grade_status from USER where grade_status = 0 or grade_status = 1;";
     const [result] = await this.transaction([sql]);
     return result;
   }
@@ -143,7 +142,7 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
   async user_search(keyword) {
     // 유저 찾기
     let sql =
-      "select id, name,email, grade_status from user where (grade_status = 0 or grade_status = 1) and (id like '%?%' or name like '%?%' or email like '%?%');";
+      "select id, name,email, grade_status from USER where (grade_status = 0 or grade_status = 1) and (id like '%?%' or name like '%?%' or email like '%?%');";
     let id, name, email;
     (id = keyword), (name = keyword), (email = keyword);
 
@@ -154,9 +153,9 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
 
   async email_cert_create(id, email_cert_number) {
     //이메일 인증번호 - 생성
-    let sql = "update user set email_cert_number = ? where id = ?;";
+    let sql = "update USER set email_cert_number = ? where id = ?;";
     let values = [email_cert_number, id];
-    const [result] = await this.transaction([sql], values);
+    const result = await this.transaction([sql], values);
     console.log(
       `${id}의 인증번호 생성.. Number of records insert: ${result.affectedRows}`
     );
@@ -164,17 +163,18 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
 
   async email_cert_read(id) {
     //이메일 인증번호 - 읽기
-    let sql = "select email_cert_number from user where id = ?;";
+    let sql = "select email_cert_number from USER where id = ?;";
     let values = [id];
     const [result] = await this.transaction([sql], values);
-    return result; // 인증번호를 반환
+    return result.email_cert_number; // 인증번호를 반환
   }
 
   async change_verified_user(id) {
     //이메일 인증 완료
-    let sql = "update user set verified_user = 1 where id = ?;";
+    let verified_number = 1; // 0은 인증 안됨 1은 인증 완료
+    let sql = `update USER set verified_user = ${verified_number} where id = ?;`;
     let values = [id];
-    const [result] = await this.transaction([sql], values);
+    const result = await this.transaction([sql], values);
     console.log(
       `${id}의 이메일 인증왼료.. Number of records insert: ${result.affectedRows}`
     );
@@ -182,11 +182,12 @@ export class USER_DAO { // 유저 테이블 관련 데이터 베이스 처리 �
 
   async email_cert_delete(id) {
     //이메일 인증번호 - 삭제
-    let sql = "update user set email_cert_number = null where id = ?;";
+    let sql = "update USER set email_cert_number = null where id = ?;";
     let values = [id];
-    const [result] = await this.transaction([sql], values);
+    const result = await this.transaction([sql], values);
     console.log(
       `${id}의 인증번호 삭제.. Number of records insert: ${result.affectedRows}`
     );
   }
 }
+

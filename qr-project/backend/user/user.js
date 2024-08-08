@@ -6,7 +6,7 @@ export class USER { //유저 정의 클래스
     #email; //이메일
     #email_cert_number; //이메일 인증번호
     #phone; // 휴대폰 번호
-    #verified_user; // 회원 타입
+     // 회원 타입
     #address; // 주소
     #zipcode; // 우편번호
     #grade; // 등급 상태 0 일반 1 택배원 2 관리자
@@ -67,12 +67,6 @@ export class USER { //유저 정의 클래스
         this.#email_cert_number = email_cert_number;
     }
 
-    get verified_user(){
-        return this.#verified_user;
-    }
-    set verified_user(verified_user){
-        this.#verified_user = verified_user;
-    }
 
     get phone(){
         return this.#phone;

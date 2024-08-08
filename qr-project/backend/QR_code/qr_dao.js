@@ -12,7 +12,8 @@ export class QR_DAO {
                 database: process.env.DATABASE_SCHEMA,
                 port: process.env.DATABASE_PORT,
                 waitForConnections: true,
-                connectionLimit: 10,                    
+                connectionLimit: 10, 
+                maxIdle: 10,                   
                 idleTimeout: 60000,
                 queueLimit: 0,
                 enableKeepAlive: true,
@@ -62,13 +63,19 @@ export class QR_DAO {
         }
     }
 
-    async create_qrcode(){ // crud
+    async create_qrcode(url, invoice_number, qr_code_image){ // crud
         try{
-            let sql =
-            ""
+            let sql = `insert into QR_code( Url, Invoice_number, QR_code_image) values (?,?,?);`;
+            let values = [url, invoice_number, qr_code_image];
+
+            const result = await this.transaction([sql],values);
+            console.log(
+                `${url}의 코드 생성.. Number of records insert: ${result.affectedRows}`
+            );
         }
         catch (err){
             console.error("database query [create_qrcode] is problem: "+ err.stack)
+            throw err;
         }
     }
 
