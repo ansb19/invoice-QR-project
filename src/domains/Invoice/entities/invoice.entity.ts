@@ -1,6 +1,7 @@
-import { Column, CreateDateColumn, Entity, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { DeliveryItem } from "./delivery_item.entity";
 import { QR_Code } from "./qr_code.entity";
+import { Charge_Type, Delivery_Status } from "@/common/utils/enum.control";
 
 export interface Item {
     name: string;
@@ -20,9 +21,9 @@ export class Invoice {
     message?: string; // 메세지
 
     @Column({ type: "varchar", length: 10 })
-    charge_type!: string; // 착불, 선불
+    charge_type!: Charge_Type; // 착불, 선불
 
-    @OneToMany( () => DeliveryItem, (item) => item.invoice, {cascade: ['insert','update', 'remove', 'soft-remove', 'recover'], eager: true})
+    @OneToMany(() => DeliveryItem, (item) => item.invoice, { cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover'], eager: true })
     items!: DeliveryItem[];
 
     // 보내는 사람 정보 (독립 저장)
@@ -45,15 +46,18 @@ export class Invoice {
     @Column({ type: 'varchar' })
     receiver_address!: string;
 
-    @Column({ type: 'varchar'})
+    @Column({ type: 'varchar' })
     delivery_driver_name?: string;
 
-    @Column({ type: 'varchar'})
+    @Column({ type: 'varchar' })
     delivery_driver_phone?: string;
 
-    @Column({type: "varchar"})
-    delivery_status!: string; //배달 상태 (배달 준비, 배달 중 )
+    @Column({ type: "varchar" })
+    delivery_status!: Delivery_Status; //배달 상태 (배달 준비, 배달 중 )
 
-    @OneToOne(() => QR_Code, (qrcode) => qrcode.invoice, { cascade: ['insert','update', 'remove', 'soft-remove', 'recover'], eager: true})
+    @UpdateDateColumn({ type: "timestamp", default: () => "timezone('Asia/Seoul', now())" })
+    delivery_status_at?: Date;
+
+    @OneToOne(() => QR_Code, (qrcode) => qrcode.invoice, { cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover'], eager: true })
     qr_code!: QR_Code;
 }

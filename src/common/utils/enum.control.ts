@@ -32,3 +32,10 @@ export enum Charge_Type {
     PREPAYMENT = "선불",
     AFTERPAYMENT = "착불",
 }
+
+export enum Invoice_User {
+    DEIVERY = "배달기사",
+    SENDER = "보내는사람",
+    RECEIVER = "받는사람"
+
+}

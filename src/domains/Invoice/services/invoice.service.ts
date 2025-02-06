@@ -6,10 +6,11 @@ import { EnvConfig } from "@/config/env.config";
 import { Invoice, Item } from "../entities/invoice.entity";
 import { TransactionManager } from "@/config/database/transaction_manager";
 import { Address } from "@/domains/user/entities/address.entity";
-import { AppError, DatabaseError, ForbiddenError, NotFoundError } from "@/common/exceptions/app.error";
+import { AppError, DatabaseError, ForbiddenError, NotFoundError, ValidationError } from "@/common/exceptions/app.error";
 import { toDataURL } from "qrcode";
 import { SMSService } from "@/common/services/sms.service";
-import { Delivery_Driver, Delivery_Status, Routers } from "@/common/utils/enum.control";
+import { Delivery_Driver, Delivery_Status, Invoice_User, Routers } from "@/common/utils/enum.control";
+import { SocialUserRepository } from "@/domains/user/repository/social_user.repository";
 
 
 @Service()
@@ -21,43 +22,25 @@ export class InvoiceService {
         @Inject(() => EnvConfig) private config: EnvConfig,
         @Inject(() => TransactionManager) private transactionmanager: TransactionManager,
         @Inject(() => SMSService) private sms: SMSService,
+        @Inject(() => SocialUserRepository) private user: SocialUserRepository,
     ) {
 
     }
 
     public async create_invoice(
-        r_address: Partial<Address>,
-        s_address: Partial<Address>,
+
         invoice_data: Partial<Invoice>,
-        delivery_items_data: Partial<Item[]>): Promise<Invoice> {
+    ): Promise<Invoice> {
         //송장, 딜리버리, 아이템
         try {
-            const receiver_name = r_address.name;
-            const receiver_phone = r_address.receiver_phone_number1;
-            const receiver_address =
-                `${r_address.base_address} ${r_address.detail_address} ${r_address.zone_number}${r_address.zip_code}`;
-
-            const sender_name = s_address.name;
-            const sender_phone = s_address.receiver_phone_number1;
-            const sender_address =
-                `${s_address.base_address} ${s_address.detail_address} ${s_address.zone_number}${s_address.zip_code}`
-
-
             const result = await this.transactionmanager.execute(async (queryRunner) => {
 
                 const new_invoice = await this.invoice.create({
                     ...invoice_data,
-                    sender_name: sender_name,
-                    sender_phone: sender_phone,
-                    sender_address: sender_address,
-                    receiver_name: receiver_name,
-                    receiver_phone: receiver_phone,
-                    receiver_address: receiver_address,
-                    delivery_status: Delivery_Status.CHARGE,
                 }, queryRunner)
 
                 await Promise.all(
-                    delivery_items_data.map(async (item) => {
+                    invoice_data.items!.map(async (item) => {
                         await this.delivery_item.create({
                             ...item,
                             invoice: new_invoice,
@@ -104,20 +87,19 @@ export class InvoiceService {
 
     }
 
-    public async change_delivery_status(id: number, status: Delivery_Status, driver?: Delivery_Driver): Promise<void> {
+    public async change_delivery_status(id: number, data: Partial<Invoice>): Promise<Invoice> {
 
         let text: string;
         let update_invoice: Invoice;
-        switch (status) {
+        switch (data.delivery_status) {
             case Delivery_Status.PREPARE:
-                await this.invoice.update({ id: id }, { delivery_status: status })
+                update_invoice = await this.invoice.update({ id: id }, { delivery_status: data.delivery_status })
                 break;
 
             case Delivery_Status.BATCH:
 
                 update_invoice = await this.invoice.update({ id: id }, {
-                    ...driver,
-                    delivery_status: status,
+                    ...data
                 })
 
                 text =
@@ -136,15 +118,15 @@ export class InvoiceService {
                 break;
 
             case Delivery_Status.START:
-                await this.invoice.update({ id: id }, { delivery_status: status })
+                update_invoice = await this.invoice.update({ id: id }, { delivery_status: data.delivery_status })
                 break;
 
             case Delivery_Status.DOING:
-                await this.invoice.update({ id: id }, { delivery_status: status })
+                update_invoice = await this.invoice.update({ id: id }, { delivery_status: data.delivery_status })
                 break;
 
             case Delivery_Status.COMPLETE:
-                update_invoice = await this.invoice.update({ id: id }, { delivery_status: status })
+                update_invoice = await this.invoice.update({ id: id }, { delivery_status: data.delivery_status })
 
                 text =
                     `ㅇㅇ택배 배달기사 ${update_invoice.delivery_driver_name} 입니다.
@@ -162,16 +144,52 @@ export class InvoiceService {
                 break;
 
             case Delivery_Status.CHARGE: // 상태를 오히려 뒤로 갈때만 씀
-                await this.invoice.update({ id: id }, { delivery_status: status })
+                update_invoice = await this.invoice.update({ id: id }, { delivery_status: data.delivery_status })
                 break;
+
+            default:
+                throw new NotFoundError("해당 배달 상태를 찾을 수 없습니다");
         }
+        return update_invoice;
     }
 
-    public async print_qr_code(){
+    public async print_qr_code() {
         //이건 프론트가
     }
 
-    
+    public async find_invoices(user_id: number, user_type: Invoice_User): Promise<Invoice[]> {
+        // 배달기사,보내는사람,받는사람
+        try {
+            const result = await this.transactionmanager.execute(async (queryRunner) => {
+                const find_user = await this.user.read_one({ id: user_id });
+
+                if (!find_user)
+                    throw new NotFoundError("송장 조회 중 유저를 찾을 수 없습니다");
+
+                switch (user_type) {
+                    case Invoice_User.DEIVERY:
+                        return await this.invoice.read_all({ delivery_driver_phone: find_user.phone }, undefined, queryRunner)
+
+                    case Invoice_User.SENDER:
+                        return await this.invoice.read_all({ sender_phone: find_user.phone }, undefined, queryRunner)
+
+                    case Invoice_User.RECEIVER:
+                        return await this.invoice.read_all({ receiver_phone: find_user.phone }, undefined, queryRunner)
+                    default:
+                        throw new ValidationError("유저 타입이 맞지 않습니다!!");
+                }
+            })
+            return result;
+
+        } catch (error) {
+            throw error instanceof (NotFoundError || ValidationError)
+                ? error
+                : new DatabaseError("유저별 송장 조회 중 오류 발생");
+        }
+
+
+    }
+
 
     //로그인한 사용자는 전부 봄
     //로그인 하지 않은 사용자는 제한된 정보 **동 *로 이런식으로 봄.

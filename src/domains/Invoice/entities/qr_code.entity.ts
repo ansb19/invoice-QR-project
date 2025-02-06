@@ -16,8 +16,4 @@ export class QR_Code {
     @JoinColumn({ name: 'invoice_id', referencedColumnName: 'id' })
     invoice!: Invoice;
 
-    @CreateDateColumn({ type: 'timestamp', default: () => "timezone('Asia/Seoul', now())" })
-    created_at!: Date;
-
-
 }
