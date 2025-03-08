@@ -8,6 +8,8 @@ services:
       - redis
     env_file:
       - /home/ec2-user/.env/.env
+    networks:
+      - app_network
 
   redis:
     image: redis:latest
@@ -16,6 +18,13 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - app_network
 
 volumes:
   redis_data:
+
+
+networks:
+  app_network:
+    driver: bridge
