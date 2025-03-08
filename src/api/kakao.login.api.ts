@@ -45,7 +45,9 @@ export class KakaoLoginApi {
             ? this.config.KAKAO_CLIENT_SECRET
             : this.config.KAKAO_TEST_CLIENT_SECRET;
 
-        this.front_url = this.config.FRONT_END_API;
+        this.config.NODE_ENV === 'localhost'
+            ? this.front_url = this.config.FRONT_END_LOCAL_API
+            : this.front_url = this.config.FRONT_END_REMOTE_WEB_API
 
         logger.info("KakaoClient initialized successfully", {
             clientID: this.clientID,
