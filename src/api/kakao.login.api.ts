@@ -69,7 +69,7 @@ export class KakaoLoginApi {
                 {
                     grant_type: "authorization_code",
                     client_id: this.clientID,
-                    redirect_uri: this.redirectUri,
+                    redirect_uri: `${this.redirectUri}/response_login`,
                     code: code,
                     client_secret: this.clientSecret
                 },
