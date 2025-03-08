@@ -20,7 +20,9 @@ jobs:
           echo NODE_ENV=${{ secrets.NODE_ENV }} >> .env
           echo NODE_NETWORK=${{ secrets.NODE_NETWORK }} >> .env
           echo PORT=${{ secrets.PORT }} >> .env
-          echo FRONT_END_API=${{ secrets.FRONT_END_API }} >> .env
+          echo FRONT_END_LOCAL_API=${{ secrets.FRONT_END_LOCAL_API }} >> .env
+          echo FRONT_END_REMOTE_APP_API=${{ secrets.FRONT_END_REMOTE_APP_API }} >> .env
+          echo FRONT_END_REMOTE_WEB_API=${{ secrets.FRONT_END_REMOTE_WEB_API }} >> .env
 
           echo FRONT_COOKIE_NAME=${{ secrets.FRONT_COOKIE_NAME }} >> .env
 

@@ -28,7 +28,8 @@ export class UserController {
         console.log('받은 요청', req.hostname);
 
         session.user_id = new_user.id;
-        
+        const userAgent = req.headers['user-agent'] || '';
+
         await new Promise<void>((resolve, reject) => {
             session.save((err) => {
                 if (err) {
@@ -38,7 +39,21 @@ export class UserController {
                 resolve();
             });
         });
-        return res.redirect(`${this.env.FRONT_END_API}/kakao_login`);
+        if (this.env.NODE_NETWORK === 'localhost') {
+            return res.redirect(`${this.env.FRONT_END_LOCAL_API}/kakao_login`);
+        }
+        else {
+            if (userAgent.includes('MyApp')) {
+                return res.redirect(`${this.env.FRONT_END_REMOTE_APP_API}/kakao_login`);
+            }
+
+            else if (userAgent.includes('Mozilla')) {
+                return res.redirect(`${this.env.FRONT_END_REMOTE_WEB_API}/kakao_login`);
+            }
+            else {
+                return res.status(500).json({ error: "기기의 운영체제를 인식하지 못하였씁니다" });
+            }
+        }
 
     }
 
@@ -118,7 +133,7 @@ export class UserController {
         // r_session = req.session 세션 전체 정보 쿠키, 세션 내용(user_id)
         // req.sessionID = req.session.id = redis session key
         // r_session.user_id = req.session.user_id =  세션 내용(user_id)
-        
+
 
         if (r_session?.user_id && r_session) {
             const find_user = await this.user.find_profile(r_session.user_id);

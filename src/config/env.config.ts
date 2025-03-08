@@ -10,7 +10,9 @@ export class EnvConfig {
     readonly NODE_ENV: string;
     readonly NODE_NETWORK: string;
     readonly PORT: number;
-    readonly FRONT_END_API: string;
+    readonly FRONT_END_LOCAL_API: string;
+    readonly FRONT_END_REMOTE_APP_API: string;
+    readonly FRONT_END_REMOTE_WEB_API: string;
     readonly FRONT_COOKIE_NAME: string;
 
     // Database
@@ -77,7 +79,9 @@ export class EnvConfig {
         this.NODE_ENV = this.getEnvVariable('NODE_ENV', 'development');
         this.NODE_NETWORK = this.getEnvVariable('NODE_NETWORK', 'localhost');
         this.PORT = this.getEnvVariableAsNumber('PORT', 3000);
-        this.FRONT_END_API = this.getEnvVariable('FRONT_END_API');
+        this.FRONT_END_LOCAL_API = this.getEnvVariable('FRONT_END_LOCAL_API');
+        this.FRONT_END_REMOTE_APP_API = this.getEnvVariable('FRONT_END_REMOTE_APP_API');
+        this.FRONT_END_REMOTE_WEB_API = this.getEnvVariable('FRONT_END_REMOTE_WEB_API');
         this.FRONT_COOKIE_NAME = this.getEnvVariable('FRONT_COOKIE_NAME');
 
         // Database
