@@ -1,70 +1,158 @@
-import { Body, Delete, Get, HttpCode, JsonController, Param, Patch, Post } from "routing-controllers";
-import { Inject, Service } from "typedi";
-import { InvoiceService } from "../services/invoice.service";
-import { CreateInvoiceDTO, ResponseInvoiceDTO, UpdateInvoiceDTO } from "../dtos/invoice.dto";
+import { Body, Delete, Get, HttpCode, JsonController, Param, Patch, Post, QueryParam, Req, Res, ResponseClassTransformOptions, Session } from "routing-controllers";
+import Container, { Inject, Service } from "typedi";
+import { Delivery_Tracker } from "../services/delivery_tracker.service";
+import session from "express-session";
+import { CreateMyInvoiceDTO } from "../dtos/invoice.dto";
+import { Response } from 'express';
 import { plainToInstance } from "class-transformer";
-import { Invoice } from "../entities/invoice.entity";
-import { Invoice_User } from "@/common/utils/enum.control";
+import { validateOrReject, Validator } from "class-validator";
 
 
 @Service()
 @JsonController('/invoice')
 export class InvoiceController {
-    constructor(@Inject(() => InvoiceService) private invoiceService: InvoiceService) {
+    constructor(
+        // @Inject(() => InvoiceService) private invoiceService: InvoiceService
+        @Inject(() => Delivery_Tracker) private delivery_tracker: Delivery_Tracker,
+    ) {
 
     }
 
-    @Post()
+    // @Post('/')
+    // @HttpCode(201)
+    // public async create_invoice(@Body() data: CreateInvoiceDTO) {
+
+    //     const entity: Partial<Invoice> = plainToInstance(Invoice, data);
+    //     const new_invoice = await this.invoiceService.create_invoice(entity);
+
+    //     const response_invoice = new ResponseInvoiceDTO(new_invoice);
+    //     return {
+    //         message: "송장 생성 완료",
+    //         data: response_invoice
+    //     }
+    // }
+
+    // @Delete('/:id')
+    // @HttpCode(200)
+    // public async delete_invoice(@Param('id') id: number) {
+
+    //     const is_delete_invoice = await this.invoiceService.delete_invoice(id);
+
+    //     return {
+    //         message: "송장 제거 완료",
+    //         data: is_delete_invoice
+    //     }
+    // }
+
+    // @Patch('/:id')
+    // @HttpCode(200)
+    // public async change_invoice(@Body() data: UpdateInvoiceDTO, @Param('id') id: number) {
+
+    //     const enetity: Partial<Invoice> = plainToInstance(Invoice, data);
+    //     const update_invoice = await this.invoiceService.change_delivery_status(id, enetity);
+    //     const response_invoice = new ResponseInvoiceDTO(update_invoice);
+
+    //     return {
+    //         message: "송장 수정 성공",
+    //         data: response_invoice,
+    //     }
+    // }
+
+
+    // @Get('/user/:user_id/:user_type')
+    // @HttpCode(200)
+    // public async find_invoices(@Param('user_id') user_id: number, @Param('user_type') user_type: Invoice_User) {
+
+    //     const find_invoices = await this.invoiceService.find_invoices(user_id, user_type);
+
+    //     const response_invoices = find_invoices.map((invoice) => new ResponseInvoiceDTO(invoice));
+    //     return {
+    //         message: "유저 종류별 송장 조회 성공",
+    //         data: response_invoices
+    //     }
+    // }
+
+    @Get('/info/:invoice_number')
+    @HttpCode(200)
+    public async get_invoice_info(@Param('invoice_number') invoice_number: string) {
+
+        const find_invoice = await this.delivery_tracker.find_invoice(invoice_number);
+
+        return {
+            message: "택배 송장 정보 조회 성공",
+            data: find_invoice,
+        }
+    }
+
+
+    @Get('/tracker/:invoice_number')
+    @HttpCode(200)
+    public async get_invoice_tracker(@Param('invoice_number') invoice_number: string) {
+
+        const find_tracker = await this.delivery_tracker.track_invoice(invoice_number);
+
+        return {
+            message: "택배 추적 정보 조회 성공",
+            data: find_tracker,
+        }
+    }
+
+    @Get('/coords/:invoice_number')
+    @HttpCode(200)
+    public async get_tracker_coords(@Param('invoice_number') invoice_number: string) {
+
+        const find_coords = await this.delivery_tracker.get_coord(invoice_number);
+
+        return {
+            message: "택배 경로 좌표 조회 성공",
+            data: find_coords,
+
+        }
+    }
+
+    @Get('/qr_code')
+    @HttpCode(200)
+    public async get_qr_code(@QueryParam('url') url: string) {
+        const change_qr_code = await this.delivery_tracker.get_qrcode_and_s3(url);
+
+        return {
+            message: "택배 qr코드 변환 성공",
+            data: change_qr_code,
+        }
+
+    }
+
+    @Post('/user')
     @HttpCode(201)
-    public async create_invoice(@Body() data: CreateInvoiceDTO) {
+    public async create_user_invoice_record(@Body() body: CreateMyInvoiceDTO, @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response) {
 
-        const entity: Partial<Invoice> = plainToInstance(Invoice, data);
-        const new_invoice = await this.invoiceService.create_invoice(entity);
+        
+        const user_id = session.user_id;
+        console.log("boday:", typeof body.invoice_number);
+        if (!user_id)
+            return res.status(404).json({ message: "유저 세션이 없습니다." })
 
-        const response_invoice = new ResponseInvoiceDTO(new_invoice);
+        const invoice_numbers = body.invoice_number;
+        await this.delivery_tracker.create_my_invoice(user_id, invoice_numbers);
+
         return {
-            message: "송장 생성 완료",
-            data: response_invoice
+            message: "최근 송장에 추가 성공",
         }
     }
 
-    @Delete()
+    @Get('/user')
     @HttpCode(200)
-    public async delete_invoice(@Param('id') id: number) {
+    public async get_my_invoice_list(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response) {
 
-        const is_delete_invoice = await this.invoiceService.delete_invoice(id);
+        const user_id = session.user_id;
+        if (!user_id)
+            return res.status(404).json({ message: "유저 세션이 없습니다." })
+
+        const find_list = await this.delivery_tracker.find_my_invoice_list(user_id);
 
         return {
-            message: "송장 제거 완료",
-            data: is_delete_invoice
-        }
-    }
-
-    @Patch()
-    @HttpCode(200)
-    public async change_invoice(@Body() data: UpdateInvoiceDTO, @Param('id') id: number) {
-
-        const enetity: Partial<Invoice> = plainToInstance(Invoice, data);
-        const update_invoice = await this.invoiceService.change_delivery_status(id, enetity);
-        const response_invoice = new ResponseInvoiceDTO(update_invoice);
-
-        return {
-            message: "송장 수정 성공",
-            data: response_invoice,
-        }
-    }
-
-
-    @Get()
-    @HttpCode(200)
-    public async find_invoices(@Param('user_id') user_id: number, @Param('user_type') user_type: Invoice_User) {
-
-        const find_invoices = await this.invoiceService.find_invoices(user_id, user_type);
-
-        const response_invoices = find_invoices.map((invoice) => new ResponseInvoiceDTO(invoice));
-        return {
-            message: "유저 종류별 송장 조회 성공",
-            data: response_invoices
+            message: "내 송장 조회 성공",
+            data: find_list,
         }
     }
 }

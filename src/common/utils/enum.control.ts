@@ -4,7 +4,8 @@ export enum UserType {
 }
 
 export enum TTL_Time {
-    LOGIN_TTL = 1000 * 60 * 30,
+    LOGIN_WEB_TTL = 1000 * 60 * 30,
+    LOGIN_APP_TTL = 1000 * 60 * 60 * 24 * 30,
     EMAIL_CERT_TTL = 1000 * 60 * 10,
     SMS_CERT_TTL = 1000 * 60 * 5,
 }
@@ -20,10 +21,9 @@ export interface Delivery_Driver {
 
 
 export enum Delivery_Status {
-    CHARGE = "결제 완료", //결제만 완료된 상태 송장 취소가능,
+    ORDER = "주문 및 결제 완료", //결제만 완료된 상태 송장 취소가능,
     PREPARE = "준비 중", // 준비 중 ->> 이 부분 부터 송장 삭제 불가능,
-    BATCH = "배달 기사 배치 완료",
-    START = "배달 시작 ", // 배달 기사 배치 포함 시켜버림
+    START = "배달 기사 배치 완료", // 배달 기사 배치
     DOING = "배달 중",
     COMPLETE = "배달 완료",
 }

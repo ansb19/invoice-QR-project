@@ -49,4 +49,12 @@ export class AddressService {
 
         return is_delete_address;
     }
+
+    public async find_similar_address(user_id: number, partial_receiver_name: string): Promise<Address[]> {
+
+        const addresses = await this.find_similar_address(user_id, partial_receiver_name);
+
+        return addresses;
+
+    }
 }

@@ -1,4 +1,4 @@
-import { Body, Delete, Get, HttpCode, JsonController, Param, Patch, Post, Put } from "routing-controllers";
+import { Body, Delete, Get, HttpCode, JsonController, NotFoundError, Param, Patch, Post, Put, Session } from "routing-controllers";
 import { Inject, Service } from "typedi";
 import { AddressService } from "../services/address.service";
 import { Address } from "../entities/address.entity";
@@ -13,7 +13,7 @@ export class AddressController {
 
     }
 
-    @Post()
+    @Post('/')
     @HttpCode(201)
     public async create_address(@Body() address: CreateAddressDTO) {
 
@@ -43,11 +43,14 @@ export class AddressController {
         }
     }
 
-    @Get('/:user_id')
+    @Get('/user/:user_id')
     @HttpCode(200)
-    public async read_addresses_list(@Param('user_id') user_id: number) {
+    public async read_addresses_list(@Session() session: any) {
 
-        const find_addresses = await this.address.read_addresses_list(user_id);
+        if(!session.user_id)
+            throw new NotFoundError("세션이 존재하지 않습니다");
+
+        const find_addresses = await this.address.read_addresses_list(session.user_id);
 
         const response_addresses = find_addresses.map((address) => new ResponseAddressDTO(address))
 
@@ -56,6 +59,7 @@ export class AddressController {
             data: response_addresses,
         }
     }
+    
 
     @Get('/:id')
     @HttpCode(200)

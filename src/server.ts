@@ -3,25 +3,40 @@ import 'tsconfig-paths/register';
 
 import express from 'express';
 import Container from 'typedi';
-import { useContainer as useValidatorContainer } from 'class-validator';
+import { useContainer as useValidatorContainer, Validate, Validator } from 'class-validator';
 import { useExpressServer, useContainer as useControllerContainer } from 'routing-controllers';
 import { EnvConfig } from './config/env.config';
 import { logger } from './common/logging/logger';
 import { LoggerMiddlerWare } from './middleware/logger.middleware';
 import { Database } from './config/database/Database';
 import { Redis } from './common/services/redis.service';
-import { NotFoundMiddleware } from './middleware/not_found.middleware';
 import { NotFoundError } from './common/exceptions/app.error';
 import { UserController } from './domains/user/controllers/user.controller';
 import cron from 'node-cron';
 import { UserService } from './domains/user/services/user.service';
-import { SessionMiddleware } from './middleware/session.middlerware';
+import { SessionMiddleware } from './middleware/session.middleware';
+import { InvoiceController } from './domains/Invoice/controllers/invoice.controller';
+import { AddressController } from './domains/user/controllers/address.controller';
+
+declare module 'express-session' {
+    interface SessionData {
+      user_id?: number;
+      invoice_number: string;
+    }
+  }
 
 const env_config = Container.get(EnvConfig);
 
 //IoC 컨테이너 설정
-useValidatorContainer(Container);
-useControllerContainer(Container);
+useValidatorContainer(Container, {
+    fallback: true,
+    fallbackOnErrors: true
+});
+Container.set(Validator, new Validator());
+useControllerContainer(Container, {
+    fallback: true,
+    fallbackOnErrors: true,
+});
 
 
 const port = env_config.PORT;
@@ -35,6 +50,7 @@ async function startServer() {
         // 데이터베이스 연결 초기화
         const database = Container.get(Database);
         await database.initialize();
+        
         await database.runMigrations(); // 프로덕션 환경에서는 비활성화 가능
 
         // Redis 초기화
@@ -50,9 +66,10 @@ async function startServer() {
             //routePrefix: '/',
             controllers: [
                 // ChatController,
-                // InvoiceController,
+                InvoiceController,
                 // ShopController,
                 UserController,
+                AddressController,
             ],
             middlewares: [LoggerMiddlerWare, SessionMiddleware,],
             interceptors: [],
@@ -64,6 +81,7 @@ async function startServer() {
                 enableImplicitConversion: true,
             },
             validation: true, //class-validator 활성화
+            
             development: env_config.NODE_ENV !== "production",
             defaultErrorHandler: false,
             // defaultErrorHandler: true → errorOverridingMap이 적용됨 ✅
@@ -89,7 +107,8 @@ async function startServer() {
 
         })
 
-
+        app.set("trust proxy", 1); // 프로식 서버 설정
+        
         // 기본 라우트
         app.get("/", (req, res) => {
             const currentTime = new Date();

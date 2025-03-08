@@ -1,6 +1,6 @@
 import { Inject, Service } from "typedi";
 import { SocialUserRepository } from "../repository/social_user.repository";
-import { KakaoApi } from "@/api/kakao.api";
+import { KakaoLoginApi } from "@/api/kakao.login.api";
 import { TransactionManager } from "@/config/database/transaction_manager";
 import { AddDate, formatPhoneNumber } from "@/common/utils/formatter";
 import { SocialUser } from "../entities/social_user.entity";
@@ -13,7 +13,7 @@ import { AddressRepository } from "../repository/address.repository";
 export class UserService {
     constructor(
         @Inject(() => SocialUserRepository) private SocialUserRepository: SocialUserRepository,
-        @Inject(() => KakaoApi) private kakaoapi: KakaoApi,
+        @Inject(() => KakaoLoginApi) private kakaoapi: KakaoLoginApi,
         @Inject(() => TransactionManager) private transactionManager: TransactionManager,
         @Inject(() => AddressRepository) private addressRepository: AddressRepository,
 
@@ -28,7 +28,7 @@ export class UserService {
 
     public async kakao_signup(code: string): Promise<SocialUser> {
         try {
-            console.log(`code: ${code}`);
+
             const data = await this.kakaoapi.request_token(code);
 
             const kakao_user_info = await this.kakaoapi.request_user_info(data.access_token);
@@ -172,6 +172,17 @@ export class UserService {
             throw error instanceof NotFoundError
                 ? error
                 : new ValidationError(`Social withdrwal process failed: ${(error as Error).message}`, error as Error);
+        }
+    }
+
+    public async find_profile(id: number): Promise<SocialUser> {
+        try {
+            const find_user = await this.SocialUserRepository.read_one({ id: id });
+            if (!find_user)
+                throw new NotFoundError(`해당 소셜 유저가 없습니다.`);
+            return find_user;
+        } catch (error) {
+            throw new DatabaseError("프로필 조회 중 오류 발생");
         }
     }
 }

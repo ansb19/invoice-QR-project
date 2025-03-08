@@ -2,14 +2,25 @@ import { logger } from "@/common/logging/logger";
 import { EnvConfig } from "@/config/env.config";
 import { Inject, Service } from "typedi";
 import { Address, SoicalUser, Token } from "./i-social.api";
-import { axiosKapi, axiosKauth } from "./axios.api";
 import { ExternalApiError } from "@/common/exceptions/app.error";
+import axios, { AxiosInstance } from "axios";
 
+const axiosKapi: AxiosInstance = axios.create({
+    baseURL: 'https://kapi.kakao.com',
+    timeout: 5000,
+    withCredentials: true,
+})
+
+const axiosKauth: AxiosInstance = axios.create({
+    baseURL: 'https://kauth.kakao.com',
+    timeout: 5000,
+    withCredentials: true,
+})
 
 // https://developers.kakao.com/docs/latest/ko/kakaologin/rest-api#kakaologin
 
 @Service()
-export class KakaoApi {
+export class KakaoLoginApi {
     private readonly clientID: string;
     private readonly redirectUri: string;
     private readonly clientSecret: string;
@@ -55,13 +66,14 @@ export class KakaoApi {
             console.log(this.clientID);
             console.log(this.redirectUri);
             console.log(this.clientSecret);
-            const response = await axiosKauth.post('/oauth/token', {
-                grant_type: "authorization_code",
-                client_id: this.clientID,
-                redirect_uri: this.redirectUri,
-                code: code,
-                client_secret: this.clientSecret
-            },
+            const response = await axiosKauth.post('/oauth/token',
+                {
+                    grant_type: "authorization_code",
+                    client_id: this.clientID,
+                    redirect_uri: this.redirectUri,
+                    code: code,
+                    client_secret: this.clientSecret
+                },
                 {
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'

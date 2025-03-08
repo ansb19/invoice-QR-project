@@ -1,22 +1,23 @@
-FROM node:lts AS builder
-
-WORKDIR /app
-
-COPY package.json ./
-RUN npm install
-
-COPY . .
-
+# Step 1: Use an official Node.js base image
 FROM node:lts-slim
 
-WORKDIR /app
+# Step 2: Set the working directory
+WORKDIR /usr/src/app
 
-COPY --from=builder /app .
+# Step 3: Copy package.json and package-lock.json to install dependencies
+COPY package*.json ./
 
-EXPOSE 3000
+# Step 4: Install dependencies
+RUN npm install
 
-RUN npm prune --production && \
-    rm -rf /usr/local/share/.cache /root/.npm /tmp/
+# Step 5: Copy the rest of the application code
+COPY . .
 
-CMD [ "node", "app.js" ]
+# Step 6: Build the TypeScript code
+RUN npm run build
 
+# Step 7: Expose the port that the app runs on (예: 3000)
+EXPOSE 80
+
+# Step 8: Start the server
+CMD ["npm", "run", "dev-ts"]

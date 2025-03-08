@@ -11,6 +11,7 @@ export class EnvConfig {
     readonly NODE_NETWORK: string;
     readonly PORT: number;
     readonly FRONT_END_API: string;
+    readonly FRONT_COOKIE_NAME: string;
 
     // Database
     readonly DB_TYPE: string;
@@ -41,9 +42,6 @@ export class EnvConfig {
 
     readonly SESSION_SECRET: string;
 
-    //AWS-S3
-    readonly S3_BUCKETNAME: string;
-    readonly S3_REGION: string;
 
     //address-api
 
@@ -58,7 +56,20 @@ export class EnvConfig {
     readonly KAKAO_TEST_REDIRECT_URI_REMOTE: string;
     readonly KAKAO_TEST_CLIENT_SECRET: string;
 
+    readonly  DELIVERY_TRACKER_CLIENT_ID: string;
+    readonly DELIVERY_TRACKER_CLIENT_SECRET: string;
 
+    readonly SMART_DELIVERY_API_KEY: string;
+
+    readonly CHATGPT_API_KEY: string;
+    readonly CHATGPT_PROJECT_ID: string;
+
+    readonly PUBLIC_MAP_API_KEY: string;
+
+    readonly AWS_S3_ACCESS_KEY: string;
+    readonly AWS_S3_ACCESS_SECRET: string;
+    readonly AWS_S3_REGION: string;
+    readonly AWS_S3_BUCKNAME: string;
     constructor() {
         // 필수 환경 변수 검증
         console.log('Initializing EnvConfig...');
@@ -67,6 +78,7 @@ export class EnvConfig {
         this.NODE_NETWORK = this.getEnvVariable('NODE_NETWORK', 'localhost');
         this.PORT = this.getEnvVariableAsNumber('PORT', 3000);
         this.FRONT_END_API = this.getEnvVariable('FRONT_END_API');
+        this.FRONT_COOKIE_NAME = this.getEnvVariable('FRONT_COOKIE_NAME');
 
         // Database
         this.DB_TYPE = this.getEnvVariable('DB_TYPE', 'postgres')
@@ -98,9 +110,7 @@ export class EnvConfig {
         //session secret
         this.SESSION_SECRET = this.getEnvVariable('SESSION_SECRET');
 
-        //s3
-        this.S3_BUCKETNAME = this.getEnvVariable('S3_BUCKETNAME');
-        this.S3_REGION = this.getEnvVariable('S3_REGION');
+        
 
         // Kakao
         this.KAKAO_REST_API_KEY = this.getEnvVariable('KAKAO_REST_API_KEY');
@@ -113,6 +123,21 @@ export class EnvConfig {
         this.KAKAO_TEST_REDIRECT_URI_LOCAL = this.getEnvVariable('KAKAO_TEST_REDIRECT_URI_LOCAL');
         this.KAKAO_TEST_REDIRECT_URI_REMOTE = this.getEnvVariable('KAKAO_TEST_REDIRECT_URI_REMOTE');
         this.KAKAO_TEST_CLIENT_SECRET = this.getEnvVariable('KAKAO_TEST_CLIENT_SECRET');
+
+        this.DELIVERY_TRACKER_CLIENT_ID = this.getEnvVariable('DELIVERY_TRACKER_CLIENT_ID');
+        this.DELIVERY_TRACKER_CLIENT_SECRET = this.getEnvVariable('DELIVERY_TRACKER_CLIENT_SECRET');
+        
+        this.SMART_DELIVERY_API_KEY = this.getEnvVariable('SMART_DELIVERY_API_KEY');
+
+        this.CHATGPT_API_KEY= this.getEnvVariable('CHATGPT_API_KEY');
+        this.CHATGPT_PROJECT_ID = this.getEnvVariable('CHATGPT_PROJECT_ID');
+
+        this.PUBLIC_MAP_API_KEY = this.getEnvVariable('PUBLIC_MAP_API_KEY');
+
+        this.AWS_S3_ACCESS_KEY= this.getEnvVariable('AWS_S3_ACCESS_KEY');
+        this.AWS_S3_ACCESS_SECRET= this.getEnvVariable('AWS_S3_ACCESS_SECRET');
+        this.AWS_S3_REGION = this.getEnvVariable('AWS_S3_REGION');
+        this.AWS_S3_BUCKNAME= this.getEnvVariable('AWS_S3_BUCKNAME');
 
         console.log('EnvConfig initialization completed.');
     }

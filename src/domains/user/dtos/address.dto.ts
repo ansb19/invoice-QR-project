@@ -1,5 +1,6 @@
 import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsPhoneNumber, IsString, Length } from 'class-validator';
 import { Address } from '../entities/address.entity';
+import { Service } from 'typedi';
 
 export class CreateAddressDTO {
 
