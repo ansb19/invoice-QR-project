@@ -24,7 +24,6 @@ export class KakaoLoginApi {
     private readonly clientID: string;
     private readonly redirectUri: string;
     private readonly clientSecret: string;
-    private readonly front_url: string;
     constructor(@Inject(() => EnvConfig) private readonly config: EnvConfig,
     ) {
 
@@ -34,20 +33,18 @@ export class KakaoLoginApi {
 
         this.redirectUri = this.config.NODE_ENV === "production"
             ? this.config.NODE_NETWORK === "remote"
-                ? this.config.KAKAO_REDIRECT_URI_REMOTE
-                : this.config.KAKAO_REDIRECT_URI_LOCAL
+                ? this.config.FRONT_END_REMOTE_WEB_API
+                : this.config.FRONT_END_LOCAL_API
             : this.config.NODE_NETWORK === "remote"
-                ? this.config.KAKAO_TEST_REDIRECT_URI_REMOTE
-                : this.config.KAKAO_TEST_REDIRECT_URI_LOCAL;
+                ? this.config.FRONT_END_REMOTE_WEB_API
+                : this.config.FRONT_END_LOCAL_API;
 
 
         this.clientSecret = this.config.NODE_ENV === "production"
             ? this.config.KAKAO_CLIENT_SECRET
             : this.config.KAKAO_TEST_CLIENT_SECRET;
 
-        this.config.NODE_ENV === 'localhost'
-            ? this.front_url = this.config.FRONT_END_LOCAL_API
-            : this.front_url = this.config.FRONT_END_REMOTE_WEB_API
+
 
         logger.info("KakaoClient initialized successfully", {
             clientID: this.clientID,
@@ -57,7 +54,7 @@ export class KakaoLoginApi {
 
     public get_url(): string {
         const loginUrl =
-            `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${this.clientID}&redirect_uri=${this.redirectUri}`;
+            `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${this.clientID}&redirect_uri=${this.redirectUri}/response_login`;
         return loginUrl;
     }
 
@@ -127,7 +124,7 @@ export class KakaoLoginApi {
             const response = await axiosKauth.get('/oauth/logout', {
                 params: {
                     client_id: this.clientID,
-                    logout_redirect_uri: this.front_url,
+                    logout_redirect_uri: `${this.redirectUri}/kakao_login`,
 
                 }
             })

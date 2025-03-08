@@ -20,10 +20,10 @@ export class UserController {
 
     @Get('/signup/kakao') // 백엔드에서 대부분 처리해서 get으로 받아야함
     @HttpCode(200)
-    public async signup_login_kakao(@QueryParam('code') code: string, @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
+    public async signup_login_kakao(@Param('code') code: string, @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
 
         const new_user = await this.user.kakao_signup(code);
-        //const response_user = new ResponseSocialUserDTO(new_user);
+        const response_user = new ResponseSocialUserDTO(new_user);
 
         console.log('받은 요청', req.hostname);
 
@@ -39,20 +39,9 @@ export class UserController {
                 resolve();
             });
         });
-        if (this.env.NODE_NETWORK === 'localhost') {
-            return res.redirect(`${this.env.FRONT_END_LOCAL_API}/kakao_login`);
-        }
-        else {
-            if (userAgent.includes('MyApp')) {
-                return res.redirect(`${this.env.FRONT_END_REMOTE_APP_API}/kakao_login`);
-            }
-
-            else if (userAgent.includes('Mozilla')) {
-                return res.redirect(`${this.env.FRONT_END_REMOTE_WEB_API}/kakao_login`);
-            }
-            else {
-                return res.status(500).json({ error: "기기의 운영체제를 인식하지 못하였씁니다" });
-            }
+        return {
+            message: "회원 정보 조회 전송",
+            data: response_user,
         }
 
     }
