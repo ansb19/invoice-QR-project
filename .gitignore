@@ -7,3 +7,4 @@ tsconfig.tsbuildinfo
 /.git
 /logs
 /tested
+/simple_test
