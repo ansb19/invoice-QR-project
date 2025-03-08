@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     image: ansb19/invoice_qr:latest

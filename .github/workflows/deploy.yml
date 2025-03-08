@@ -96,8 +96,8 @@ jobs:
       # 4. Docker 이미지 빌드 및 푸시
       - name: Build and Push Docker Image
         run: |
-          docker build -t ansb19/anywhere:latest .
-          docker push ansb19/anywhere:latest
+          docker build -t ansb19/invoice_qr:latest .
+          docker push ansb19/invoice_qr:latest
           
       # 5. docker-compose.yml 파일 전송
       - name: Upload docker-compose.yml to EC2
@@ -119,8 +119,8 @@ jobs:
           script: |
             cd /home/ec2-user/docker-compose.yml/
 
-            docker ps -q --filter "name=anywhere" | grep -q . && docker stop anywhere && \
-            docker rm anywhere || true
+            docker ps -q --filter "name=invoice_qr" | grep -q . && docker stop invoice_qr && \
+            docker rm invoice_qr || true
 
             docker network prune -f || true
             docker volume prune -f || true
