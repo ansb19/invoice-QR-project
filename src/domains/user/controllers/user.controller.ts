@@ -18,7 +18,7 @@ export class UserController {
     }
 
 
-    @Get('/signup/kakao') // 백엔드에서 대부분 처리해서 get으로 받아야함
+    @Get('/signup/kakao/:code') // 백엔드에서 대부분 처리해서 get으로 받아야함
     @HttpCode(200)
     public async signup_login_kakao(@Param('code') code: string, @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
 
