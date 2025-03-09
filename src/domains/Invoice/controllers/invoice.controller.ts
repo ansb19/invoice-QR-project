@@ -3,7 +3,7 @@ import Container, { Inject, Service } from "typedi";
 import { Delivery_Tracker } from "../services/delivery_tracker.service";
 import session from "express-session";
 import { CreateMyInvoiceDTO } from "../dtos/invoice.dto";
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { plainToInstance } from "class-transformer";
 import { validateOrReject, Validator } from "class-validator";
 
@@ -126,7 +126,7 @@ export class InvoiceController {
     @HttpCode(201)
     public async create_user_invoice_record(@Body() body: CreateMyInvoiceDTO, @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response) {
 
-        
+
         const user_id = session.user_id;
         console.log("session", session.cookie);
         console.log("boday:", typeof body.invoice_number);
@@ -143,11 +143,18 @@ export class InvoiceController {
 
     @Get('/user')
     @HttpCode(200)
-    public async get_my_invoice_list(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response) {
+    public async get_my_invoice_list(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
 
         const user_id = session.user_id;
-        console.log("session", session.cookie);
+
+        console.log("sessioncookie", session.cookie);
+        console.log("session", session);
         console.log("sessionid:", session.id);
+        console.log("Request Headers:", req.headers);
+        console.log("req.sessionID:", req.sessionID);
+        console.log("req.sessionID:", req.session.id);
+        console.log("req.session:", req.session);
+
 
         if (!user_id)
             return res.status(202).json({ message: "유저 세션이 없습니다." })
