@@ -76,7 +76,7 @@ export class UserController {
                 return res.json({ message: "로그아웃 성공" });
             }
             else {
-                return res.status(410).json({ message: "이미 로그아웃된 상태입니다" });
+                return res.status(202).json({ message: "이미 로그아웃된 상태입니다" });
             }
         } catch (error) {
             console.error("로그아웃 처리 중 에러:", error);
@@ -106,7 +106,7 @@ export class UserController {
                 return res.json({ message: "회원탈퇴 성공" });
             }
             else {
-                return res.status(410).json({ message: "시간이 경과하여 로그아웃 되었습니다. 다시 로그인해주세요" });
+                return res.status(202).json({ message: "시간이 경과하여 로그아웃 되었습니다. 다시 로그인해주세요" });
             }
         } catch (error) {
             console.error("회원탈퇴 처리 중 에러:", error);
