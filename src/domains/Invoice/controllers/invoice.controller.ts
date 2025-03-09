@@ -146,6 +146,8 @@ export class InvoiceController {
     public async get_my_invoice_list(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response) {
 
         const user_id = session.user_id;
+        console.log("session", session.cookie);
+
         if (!user_id)
             return res.status(202).json({ message: "유저 세션이 없습니다." })
 
