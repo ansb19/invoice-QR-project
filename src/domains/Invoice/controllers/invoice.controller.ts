@@ -130,7 +130,7 @@ export class InvoiceController {
         const user_id = session.user_id;
         console.log("boday:", typeof body.invoice_number);
         if (!user_id)
-            return res.status(404).json({ message: "유저 세션이 없습니다." })
+            return res.status(202).json({ message: "유저 세션이 없습니다." })
 
         const invoice_numbers = body.invoice_number;
         await this.delivery_tracker.create_my_invoice(user_id, invoice_numbers);
@@ -146,7 +146,7 @@ export class InvoiceController {
 
         const user_id = session.user_id;
         if (!user_id)
-            return res.status(404).json({ message: "유저 세션이 없습니다." })
+            return res.status(202).json({ message: "유저 세션이 없습니다." })
 
         const find_list = await this.delivery_tracker.find_my_invoice_list(user_id);
 

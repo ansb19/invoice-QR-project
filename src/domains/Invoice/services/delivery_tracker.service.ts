@@ -313,8 +313,8 @@ export class Delivery_Tracker {
     async find_my_invoice_list(user_id: number): Promise<string[]> {
 
         const key = this.CACHE_KEY(user_id);
-        await this.redis.refresh(key, Invoice_TTL.my_invoice);
         const cached_invoice_list = await this.redis.getClient().lRange(key, 0, -1);
+        await this.redis.getClient().expire(key, Invoice_TTL.my_invoice);
         return cached_invoice_list;
     }
 }
