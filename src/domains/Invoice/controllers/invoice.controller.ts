@@ -155,6 +155,8 @@ export class InvoiceController {
         console.log("req.sessionID:", req.session.id);
         console.log("req.session:", req.session);
         console.log("req.cookies:", req.cookies);
+        console.log("req.headers.cookie:", req.headers.cookie);
+        
 
 
         if (!user_id)
