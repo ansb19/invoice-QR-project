@@ -107,7 +107,7 @@ async function startServer() {
 
         })
 
-        app.set("trust proxy", 1); // 프로식 서버 설정
+        app.set("trust proxy", true); // 프로식 서버 설정
         
         // 기본 라우트
         app.get("/", (req, res) => {
