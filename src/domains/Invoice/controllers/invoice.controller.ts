@@ -6,6 +6,7 @@ import { CreateMyInvoiceDTO } from "../dtos/invoice.dto";
 import { Response, Request } from 'express';
 import { plainToInstance } from "class-transformer";
 import { validateOrReject, Validator } from "class-validator";
+import { ResponseSocialUserDTO } from "@/domains/user/dtos/social_user.dto";
 
 
 @Service()
@@ -124,28 +125,48 @@ export class InvoiceController {
 
     @Post('/user')
     @HttpCode(201)
-    public async create_user_invoice_record(@Body() body: CreateMyInvoiceDTO, @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response) {
+    public async create_user_invoice_record(@Body() body: CreateMyInvoiceDTO, @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
 
-
-        const user_id = session.user_id;
-        console.log("session", session.cookie);
-        console.log("boday:", typeof body.invoice_number);
-        if (!user_id)
-            return res.status(202).json({ message: "유저 세션이 없습니다." })
-
+        const sessionId = req.headers.authorization?.split(" ")[1];
         const invoice_numbers = body.invoice_number;
-        await this.delivery_tracker.create_my_invoice(user_id, invoice_numbers);
 
-        return {
-            message: "최근 송장에 추가 성공",
+        if (session.user) {
+            await this.delivery_tracker.create_my_invoice(session.user.id, invoice_numbers);
+
+            return { message: "최근 송장 조회에 추가 성공" }
         }
+        else if (sessionId) {
+            const session_data: ResponseSocialUserDTO | null = await new Promise((resolve, reject) => {
+                req.sessionStore.get(sessionId, (err, session) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    else if (!session)
+                        resolve(null);
+                    else
+                        resolve(session.user);
+
+                })
+            })
+
+            if (!session_data) {
+                return res.status(401).json({ message: "세션이 유효하지 않음" });
+            }
+
+            await this.delivery_tracker.create_my_invoice(session_data.id, invoice_numbers);
+
+            return { message: "최근 송장 조회에 추가 성공" }
+        }
+        else {
+            return res.status(401).json({ message: "세션이 유효하지 않음" });
+        }
+
     }
+
 
     @Get('/user')
     @HttpCode(200)
     public async get_my_invoice_list(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
-
-        const user_id = session.user_id;
 
         console.log("sessioncookie", session.cookie);
         console.log("session", session);
@@ -156,17 +177,44 @@ export class InvoiceController {
         console.log("req.session:", req.session);
         console.log("req.cookies:", req.cookies);
         console.log("req.headers.cookie:", req.headers.cookie);
-        
 
 
-        if (!user_id)
-            return res.status(202).json({ message: "유저 세션이 없습니다." })
+        const sessionId = req.headers.authorization?.split(" ")[1];
 
-        const find_list = await this.delivery_tracker.find_my_invoice_list(user_id);
+        if (session.user) {
+            const find_list = await this.delivery_tracker.find_my_invoice_list(session.user.id);
 
-        return {
-            message: "내 송장 조회 성공",
-            data: find_list,
+            return {
+                message: "내 송장 조회 성공",
+                data: find_list,
+            }
+        }
+        else if (sessionId) {
+            const session_data: ResponseSocialUserDTO | null = await new Promise((resolve, reject) => {
+                req.sessionStore.get(sessionId, (err, session) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    else if (!session)
+                        resolve(null);
+                    else
+                        resolve(session.user);
+
+                })
+            })
+
+            if (!session_data) {
+                return res.status(401).json({ message: "세션이 유효하지 않음" });
+            }
+            const find_list = await this.delivery_tracker.find_my_invoice_list(session_data.id);
+
+            return {
+                message: "내 송장 조회 성공",
+                data: find_list,
+            }
+        }
+        else {
+            return res.status(401).json({ message: "세션이 유효하지 않음" });
         }
     }
 }

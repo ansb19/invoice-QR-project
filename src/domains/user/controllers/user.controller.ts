@@ -27,8 +27,9 @@ export class UserController {
 
         console.log('받은 요청', req.hostname);
 
-        session.user_id = new_user.id;
-        const userAgent = req.headers['user-agent'] || '';
+        session.user = response_user;
+
+        //const userAgent = req.headers['user-agent'] || '';
 
         await new Promise<void>((resolve, reject) => {
             session.save((err) => {
@@ -39,28 +40,32 @@ export class UserController {
                 resolve();
             });
         });
+
         return {
-            message: "회원 정보 조회 전송",
-            data: response_user,
+            message: "회원 정보 세션 전송",
+            data: session.user, //세션 아이디 전송
+            session_id: session.id,
         }
 
     }
 
     @Post('/signup/kakao/url')
     @HttpCode(201)
-    public kakao_signup_url(@Req() req: Request, @Res() res: Response) {
+    public kakao_signup_url() {
 
         return this.user.kakao_signup_url();
     }
 
     @Post('/logout/kakao')
     @HttpCode(200)
-    public async kakao_logout(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response) {
+    public async kakao_logout(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
         try {
-            console.log(`세션: ${session?.user_id}`);
+            console.log(`세션: ${session?.user}`);
 
-            if (session?.user_id) {
-                await this.user.kakao_logout(session.user_id);
+            const sessionId = req.headers.authorization?.split(" ")[1];
+
+            if (session.user) {
+                await this.user.kakao_logout(session.user.id);
 
                 await new Promise<void>((resolve, reject) => {
                     session.destroy((err) => {
@@ -75,8 +80,41 @@ export class UserController {
                 res.clearCookie(this.env.FRONT_COOKIE_NAME); // 쿠키 제거
                 return res.json({ message: "로그아웃 성공" });
             }
+
+            else if (sessionId) {
+                const session_data: ResponseSocialUserDTO | null = await new Promise((resolve, reject) => {
+                    req.sessionStore.get(sessionId, (err, session) => {
+                        if (err) {
+                            reject(err);
+                        }
+                        else if (!session)
+                            resolve(null);
+                        else
+                            resolve(session.user);
+
+                    })
+                })
+                if (!session_data) {
+                    return res.status(401).json({ message: "세션이 유효하지 않음" });
+                }
+                await this.user.kakao_logout(session_data.id);
+
+                await new Promise<void>((resolve, reject) => {
+                    session.destroy((err) => {
+                        if (err) {
+                            console.error('세션 제거 오류:', err);
+                            return res.status(500).json({ error: "세션 저장 중 오류 발생" });
+                        }
+                        resolve();
+                    });
+                })
+
+                res.clearCookie(this.env.FRONT_COOKIE_NAME); // 쿠키 제거
+                return res.json({ message: "로그아웃 성공" });
+            }
+
             else {
-                return res.status(202).json({ message: "이미 로그아웃된 상태입니다" });
+                return res.status(202).json({ message: "해당 세션을 찾을수 없습니다. 이미 로그아웃된 상태입니다" });
             }
         } catch (error) {
             console.error("로그아웃 처리 중 에러:", error);
@@ -87,10 +125,12 @@ export class UserController {
 
     @Delete('/withdrawal/kakao')
     @HttpCode(200)
-    public async kakao_withdrawl(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response) {
+    public async kakao_withdrawl(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
         try {
-            if (session.user_id) {
-                await this.user.kakao_withdrawal(session.user_id);
+            const sessionId = req.headers.authorization?.split(" ")[1];
+
+            if (session.user) {
+                await this.user.kakao_withdrawal(session.user.id);
 
                 await new Promise<void>((resolve, reject) => {
                     session.destroy((err) => {
@@ -105,6 +145,39 @@ export class UserController {
                 res.clearCookie(this.env.FRONT_COOKIE_NAME); // 쿠키 제거
                 return res.json({ message: "회원탈퇴 성공" });
             }
+
+            else if (sessionId) {
+                const session_data: ResponseSocialUserDTO | null = await new Promise((resolve, reject) => {
+                    req.sessionStore.get(sessionId, (err, session) => {
+                        if (err) {
+                            reject(err);
+                        }
+                        else if (!session)
+                            resolve(null);
+                        else
+                            resolve(session.user);
+
+                    })
+                })
+                if (!session_data) {
+                    return res.status(401).json({ message: "세션이 유효하지 않음" });
+                }
+                await this.user.kakao_withdrawal(session_data.id);
+
+                await new Promise<void>((resolve, reject) => {
+                    session.destroy((err) => {
+                        if (err) {
+                            console.error('세션 제거 오류:', err);
+                            return res.status(500).json({ error: "세션 저장 중 오류 발생" });
+                        }
+                        resolve();
+                    });
+                })
+
+                res.clearCookie(this.env.FRONT_COOKIE_NAME); // 쿠키 제거
+                return res.json({ message: "회원탈퇴 성공" });
+            }
+
             else {
                 return res.status(202).json({ message: "시간이 경과하여 로그아웃 되었습니다. 다시 로그인해주세요" });
             }
@@ -117,27 +190,50 @@ export class UserController {
 
     @Get('')
     @HttpCode(200)
-    public async find_user(@Session() r_session: session.Session & Partial<session.SessionData>, @Req() req?: Request) {
+    public async find_user(@Session() session: session.Session & Partial<session.SessionData>, @Req() req: Request, @Res() res: Response) {
 
         // r_session = req.session 세션 전체 정보 쿠키, 세션 내용(user_id)
         // req.sessionID = req.session.id = redis session key
         // r_session.user_id = req.session.user_id =  세션 내용(user_id)
 
+        try {
+            const sessionId = req.headers.authorization?.split(" ")[1];
+            if (session.user) { //일반 웹에서
+                return {
+                    message: "세션 조회 성공",
+                    data: session.user,
+                }
+            }
 
-        if (r_session?.user_id && r_session) {
-            const find_user = await this.user.find_profile(r_session.user_id);
-            const response_user = new ResponseSocialUserDTO(find_user);
-            return {
-                message: "세션 조회 성공",
-                data: response_user,
+            else if (sessionId) { //앱에서 보낸거임
+
+                const session_data = await new Promise((resolve, reject) => {
+                    req.sessionStore.get(sessionId, (err, session) => {
+                        if (err) {
+                            reject(err);
+                        }
+                        else if (!session)
+                            resolve(null);
+                        else
+                            resolve(session.user);
+
+                    })
+                })
+
+                if (!session_data) {
+                    return res.status(401).json({ message: "세션이 유효하지 않음" });
+                }
+                return res.json({ message: "인증된 사용자입니다", data: session_data });
             }
-        }
-        else {
-            return {
-                message: "세션 조회 실패",
-                data: null,
+
+            else {
+                return res.status(401).json({ message: "세션이 유효하지 않음" });
             }
+        } catch (error) {
+            console.error("세션 조회 중 오류 발생:", error);
+            return res.status(500).json({ message: "서버 오류" });
         }
+
 
     }
 

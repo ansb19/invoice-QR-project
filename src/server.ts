@@ -17,11 +17,13 @@ import { UserService } from './domains/user/services/user.service';
 import { SessionMiddleware } from './middleware/session.middleware';
 import { InvoiceController } from './domains/Invoice/controllers/invoice.controller';
 import { AddressController } from './domains/user/controllers/address.controller';
+import { ResponseSocialUserDTO } from './domains/user/dtos/social_user.dto';
 
 declare module 'express-session' {
     interface SessionData {
       user_id?: number;
       invoice_number: string;
+      user: ResponseSocialUserDTO;
     }
   }
 
