@@ -17,6 +17,34 @@ export class UserController {
 
     }
 
+    private async getSessionUser(req: Request): Promise<ResponseSocialUserDTO | null> {
+        const sessionId = req.headers.authorization?.split(" ")[1];
+
+        if (!sessionId) return null;
+
+        const session_data: ResponseSocialUserDTO | null = await new Promise((resolve, reject) => {
+            req.sessionStore.get(sessionId, (err, session) => {
+                if (err) reject(err);
+                resolve(session?.user || null);
+            });
+        });
+
+        return session_data;
+    }
+
+    private async destroySession(session: session.Session & Partial<session.SessionData>, res: Response) {
+        await new Promise<void>((resolve, reject) => {
+            session.destroy((err) => {
+                if (err) {
+                    console.error('세션 제거 오류:', err);
+                    return reject(err);
+                }
+                resolve();
+            });
+        })
+
+        res.clearCookie(this.env.FRONT_COOKIE_NAME); // 쿠키 제거
+    }
 
     @Get('/signup/kakao/:code') // 백엔드에서 대부분 처리해서 get으로 받아야함
     @HttpCode(200)
@@ -43,8 +71,8 @@ export class UserController {
 
         return {
             message: "회원 정보 세션 전송",
-            data: session.user, //세션 아이디 전송
-            session_id: session.id,
+            data: session.user,  //세션 유저 정보 전송
+            session_id: session.id,//세션 아이디 전송
         }
 
     }
@@ -62,60 +90,18 @@ export class UserController {
         try {
             console.log(`세션: ${session?.user}`);
 
-            const sessionId = req.headers.authorization?.split(" ")[1];
+            const user = session.user || await this.getSessionUser(req);
 
-            if (session.user) {
-                await this.user.kakao_logout(session.user.id);
+            if (!user)
+                return res.status(401).json({ message: "해당 세션을 찾을수 없습니다. 로그아웃된 상태입니다" });
 
-                await new Promise<void>((resolve, reject) => {
-                    session.destroy((err) => {
-                        if (err) {
-                            console.error('세션 제거 오류:', err);
-                            return res.status(500).json({ error: "세션 저장 중 오류 발생" });
-                        }
-                        resolve();
-                    });
-                })
+            await this.user.kakao_logout(user.id);
+            await this.destroySession(session, res);
 
-                res.clearCookie(this.env.FRONT_COOKIE_NAME); // 쿠키 제거
-                return res.json({ message: "로그아웃 성공" });
+            return {
+                message: "로그아웃 성공",
             }
 
-            else if (sessionId) {
-                const session_data: ResponseSocialUserDTO | null = await new Promise((resolve, reject) => {
-                    req.sessionStore.get(sessionId, (err, session) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        else if (!session)
-                            resolve(null);
-                        else
-                            resolve(session.user);
-
-                    })
-                })
-                if (!session_data) {
-                    return res.status(401).json({ message: "세션이 유효하지 않음" });
-                }
-                await this.user.kakao_logout(session_data.id);
-
-                await new Promise<void>((resolve, reject) => {
-                    session.destroy((err) => {
-                        if (err) {
-                            console.error('세션 제거 오류:', err);
-                            return res.status(500).json({ error: "세션 저장 중 오류 발생" });
-                        }
-                        resolve();
-                    });
-                })
-
-                res.clearCookie(this.env.FRONT_COOKIE_NAME); // 쿠키 제거
-                return res.json({ message: "로그아웃 성공" });
-            }
-
-            else {
-                return res.status(202).json({ message: "해당 세션을 찾을수 없습니다. 이미 로그아웃된 상태입니다" });
-            }
         } catch (error) {
             console.error("로그아웃 처리 중 에러:", error);
             return res.status(500).json({ error: "서버 오류로 인해 로그아웃 실패" });
@@ -127,60 +113,19 @@ export class UserController {
     @HttpCode(200)
     public async kakao_withdrawl(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
         try {
-            const sessionId = req.headers.authorization?.split(" ")[1];
 
-            if (session.user) {
-                await this.user.kakao_withdrawal(session.user.id);
+            const user = session.user || await this.getSessionUser(req);
 
-                await new Promise<void>((resolve, reject) => {
-                    session.destroy((err) => {
-                        if (err) {
-                            console.error('세션 제거 오류:', err);
-                            return res.status(500).json({ error: "세션 제거 중 오류 발생" });
-                        }
-                        resolve();
-                    });
-                })
+            if (!user)
+                return res.status(401).json({ message: "해당 세션을 찾을수 없습니다. 로그아웃된 상태입니다" });
 
-                res.clearCookie(this.env.FRONT_COOKIE_NAME); // 쿠키 제거
-                return res.json({ message: "회원탈퇴 성공" });
+            await this.user.kakao_withdrawal(user.id);
+            await this.destroySession(session, res);
+
+            return {
+                message: "회원탈퇴 성공"
             }
 
-            else if (sessionId) {
-                const session_data: ResponseSocialUserDTO | null = await new Promise((resolve, reject) => {
-                    req.sessionStore.get(sessionId, (err, session) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        else if (!session)
-                            resolve(null);
-                        else
-                            resolve(session.user);
-
-                    })
-                })
-                if (!session_data) {
-                    return res.status(401).json({ message: "세션이 유효하지 않음" });
-                }
-                await this.user.kakao_withdrawal(session_data.id);
-
-                await new Promise<void>((resolve, reject) => {
-                    session.destroy((err) => {
-                        if (err) {
-                            console.error('세션 제거 오류:', err);
-                            return res.status(500).json({ error: "세션 저장 중 오류 발생" });
-                        }
-                        resolve();
-                    });
-                })
-
-                res.clearCookie(this.env.FRONT_COOKIE_NAME); // 쿠키 제거
-                return res.json({ message: "회원탈퇴 성공" });
-            }
-
-            else {
-                return res.status(202).json({ message: "시간이 경과하여 로그아웃 되었습니다. 다시 로그인해주세요" });
-            }
         } catch (error) {
             console.error("회원탈퇴 처리 중 에러:", error);
             return res.status(500).json({ error: "서버 오류로 인해 회원탈퇴 실패" });
@@ -197,38 +142,16 @@ export class UserController {
         // r_session.user_id = req.session.user_id =  세션 내용(user_id)
 
         try {
-            const sessionId = req.headers.authorization?.split(" ")[1];
-            if (session.user) { //일반 웹에서
-                return {
-                    message: "세션 조회 성공",
-                    data: session.user,
-                }
+            const user = session.user || await this.getSessionUser(req);
+
+            if (!user)
+                return res.status(401).json({ message: "해당 세션을 찾을수 없습니다. 로그아웃된 상태입니다" });
+
+            return {
+                message: "세션 사용자 조회 성공",
+                data: user,
             }
 
-            else if (sessionId) { //앱에서 보낸거임
-
-                const session_data = await new Promise((resolve, reject) => {
-                    req.sessionStore.get(sessionId, (err, session) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        else if (!session)
-                            resolve(null);
-                        else
-                            resolve(session.user);
-
-                    })
-                })
-
-                if (!session_data) {
-                    return res.status(401).json({ message: "세션이 유효하지 않음" });
-                }
-                return res.json({ message: "인증된 사용자입니다", data: session_data });
-            }
-
-            else {
-                return res.status(401).json({ message: "세션이 유효하지 않음" });
-            }
         } catch (error) {
             console.error("세션 조회 중 오류 발생:", error);
             return res.status(500).json({ message: "서버 오류" });

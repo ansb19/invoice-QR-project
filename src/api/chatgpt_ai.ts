@@ -3,6 +3,11 @@ import { EnvConfig } from "@/config/env.config";
 import OpenAI from "openai";
 import Container, { Inject, Service } from "typedi";
 
+export interface Chat_Message {
+  role: "system" | "user" | "assistant",
+  content: string,
+}
+
 @Service()
 export class CHATGPT_API {
   private openai: OpenAI;
@@ -14,40 +19,35 @@ export class CHATGPT_API {
     })
   }
 
-  public async create_chatbot(message: string): Promise<string> {
+  public async create_chatbot(history: Chat_Message[]): Promise<string> {
 
-    const chat_completion = await this.openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { "role": "developer", "content": "you are chat bot assistant about delivery, qr, address" },
-        { "role": "assistant", "content": "you have to answer only about delivery and address" },
-        { "role": "user", "content": message },
-      ],
-      store: true,
-      temperature: 1.0,
-      max_tokens: 1024,
-    });
+    try {
 
-    return chat_completion.choices[0].message.content!;
-  }
+      const formatted_messages = history.map(message => (
+        {
+          role: message.role,
+          content: typeof message.content === "string" ? message.content : JSON.stringify(message.content)
+        }
+      ))
 
-  async split_delivery_spot(terminal_keyword: string): Promise<string> {
+      const chat_completion = await this.openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: "당신은 물류 및 송장 데이터를 분석하는 전문 AI 챗봇입니다. 사용자의 질문에 대해 정확하고 신뢰할 수 있는 정보를 제공합니다. 답변은 한글(한국어)로 제공합니다." },
+          ...formatted_messages, // 0번이 오래 된게 와야함함
+        ],
+        temperature: 0.5,
+        max_tokens: 1024,
+      });
 
-    const chat_completion = await this.openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { "role": "developer", "content": "You are an address lookup tool. Respond only with the CJ대한통운 terminal address in South Korea in the following format: { lat: <latitude>, lon: <longitude> }. Do not provide any extra information, only the exact latitude and longitude in this format." },
-        { "role": "user", "content": `cj 대한통운의 ${terminal_keyword} 주소를 좌표로 알려줘. { lat: 위도, lon: 경도 } 이런식으로 알려줘.` },
-      ],
-      temperature: 0.2,
-      top_p: 0.1,
-    })
+      const answer = chat_completion.choices[0].message.content!;
 
-    return chat_completion.choices[0].message.content!;
+      return answer;
+    }
+    catch (error) {
+      console.error("OpenAI API 호출 오류:", error);
+      return "오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+    }
+
   }
 }
-
-const env = new EnvConfig();
-const test = new CHATGPT_API(env);
-
-test.create_chatbot("cj대한통운의 택배 환불 정책에 대해 알려줘").then((result) => console.log(result));
