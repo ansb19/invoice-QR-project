@@ -8,3 +8,4 @@ tsconfig.tsbuildinfo
 /logs
 /tested
 /simple_test
+/backend-server.pem
