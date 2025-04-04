@@ -10,7 +10,7 @@ export class LoggerMiddlerWare implements ExpressMiddlewareInterface {
     use(request: Request, response: Response, next: NextFunction) {
         const { method,originalUrl, ip } = request;
         const message = `Request: ${method} ${originalUrl} - from ${ip}`;
-
+        
         logger.debug(message);
 
         const start_time = Date.now();

@@ -37,7 +37,8 @@ export class UserController {
     @HttpCode(200)
     public async signup_login_kakao(@Param('code') code: string, @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
 
-        const new_user = await this.user.kakao_signup(code);
+        const front_url = req.headers.origin as string;
+        const new_user = await this.user.kakao_signup(code, front_url);
         const response_user = plainToInstance(ResponseSocialUserDTO, new_user, {
             excludeExtraneousValues: true,
         })
@@ -67,9 +68,10 @@ export class UserController {
 
     @Post('/signup/kakao/url')
     @HttpCode(201)
-    public kakao_signup_url() {
+    public kakao_signup_url(@Req() req: Request) {
 
-        const url = this.user.kakao_signup_url();
+        const front_url = req.headers.origin as string;
+        const url = this.user.kakao_signup_url(front_url);
         return {
             data: url
         }

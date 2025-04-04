@@ -22,7 +22,6 @@ const axiosKauth: AxiosInstance = axios.create({
 @Service()
 export class KakaoLoginApi {
     private readonly clientID: string;
-    private readonly redirectUri: string;
     private readonly clientSecret: string;
     constructor(@Inject(() => EnvConfig) private readonly config: EnvConfig,
     ) {
@@ -30,11 +29,6 @@ export class KakaoLoginApi {
         this.clientID = this.config.NODE_ENV === "production"
             ? this.config.KAKAO_REST_API_KEY
             : this.config.KAKAO_TEST_REST_API_KEY;
-
-        this.redirectUri = this.config.NODE_NETWORK === "remote"
-            ? this.config.FRONT_END_REMOTE_WEB_API
-            : this.config.FRONT_END_LOCAL_API;
-
 
         this.clientSecret = this.config.NODE_ENV === "production"
             ? this.config.KAKAO_CLIENT_SECRET
@@ -44,28 +38,24 @@ export class KakaoLoginApi {
 
         logger.info("KakaoClient initialized successfully", {
             clientID: this.clientID,
-            redirectUri: this.redirectUri,
         });
     }
 
-    public get_url(): string {
+    public get_url(redirect_url: string): string {
         const loginUrl =
-            `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${this.clientID}&redirect_uri=${this.redirectUri}/response_login`;
+            `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${this.clientID}&redirect_uri=${redirect_url}/response_login`;
         return loginUrl;
     }
 
     //토큰 요청
-    public async request_token(code: string): Promise<Token> {
+    public async request_token(code: string, redirect_url: string): Promise<Token> {
         try {
             logger.info("Requesting Kakao token...");
-            console.log(this.clientID);
-            console.log(this.redirectUri);
-            console.log(this.clientSecret);
             const response = await axiosKauth.post('/oauth/token',
                 {
                     grant_type: "authorization_code",
                     client_id: this.clientID,
-                    redirect_uri: `${this.redirectUri}/response_login`,
+                    redirect_uri: `${redirect_url}/response_login`,
                     code: code,
                     client_secret: this.clientSecret
                 },
@@ -114,13 +104,13 @@ export class KakaoLoginApi {
     }
 
     //카카오계정과 함께 로그아웃
-    public async logout_kakao_account(): Promise<void> {
+    public async logout_kakao_account(redirect_url: string): Promise<void> {
         logger.info("Logging out user via Kakao account...");
         try {
             const response = await axiosKauth.get('/oauth/logout', {
                 params: {
                     client_id: this.clientID,
-                    logout_redirect_uri: `${this.redirectUri}/kakao_login`,
+                    logout_redirect_uri: `${redirect_url}/kakao_login`,
 
                 }
             })
