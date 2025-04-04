@@ -31,7 +31,7 @@ export class KakaoLoginApi {
             ? this.config.KAKAO_REST_API_KEY
             : this.config.KAKAO_TEST_REST_API_KEY;
 
-        this.redirectUri = this.config.NODE_NETWORK === "localhost"
+        this.redirectUri = this.config.NODE_NETWORK === "remote"
             ? this.config.FRONT_END_REMOTE_WEB_API
             : this.config.FRONT_END_LOCAL_API;
 
