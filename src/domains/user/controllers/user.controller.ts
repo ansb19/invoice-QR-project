@@ -1,4 +1,4 @@
-import { Delete, Get, HttpCode, JsonController, Param, Params, Post, QueryParam, Req, Res, Session, SessionParam } from "routing-controllers";
+import { Body, Delete, Get, HttpCode, JsonController, Param, Params, Post, QueryParam, Req, Res, Session, SessionParam } from "routing-controllers";
 import Container, { Inject, Service } from "typedi";
 import { UserService } from "../services/user.service";
 import { Request, Response } from 'express';
@@ -35,10 +35,10 @@ export class UserController {
 
     @Get('/signup/kakao/:code') // 백엔드에서 대부분 처리해서 get으로 받아야함
     @HttpCode(200)
-    public async signup_login_kakao(@Param('code') code: string, @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
+    public async signup_login_kakao(@Param('code') code: string, @QueryParam('redirect_url') redirect_url: string,
+        @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
 
-        const front_url = req.headers.origin as string;
-        const new_user = await this.user.kakao_signup(code, front_url);
+        const new_user = await this.user.kakao_signup(code, redirect_url);
         const response_user = plainToInstance(ResponseSocialUserDTO, new_user, {
             excludeExtraneousValues: true,
         })
@@ -68,10 +68,10 @@ export class UserController {
 
     @Post('/signup/kakao/url')
     @HttpCode(201)
-    public kakao_signup_url(@Req() req: Request) {
+    public kakao_signup_url(@Req() req: Request, @Body() body: { redirect_url: string }) {
 
-        const front_url = req.headers.origin as string;
-        const url = this.user.kakao_signup_url(front_url);
+        const { redirect_url } = body;
+        const url = this.user.kakao_signup_url(redirect_url);
         return {
             data: url
         }
