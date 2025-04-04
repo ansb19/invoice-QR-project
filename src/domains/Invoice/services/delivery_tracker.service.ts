@@ -8,8 +8,9 @@ import { PublicMapApi } from "@/api/public.map.api";
 import QRCode from 'qrcode';
 import { AWS_S3 } from "@/api/aws_s3";
 import { AddressService } from "@/domains/user/services/address.service";
-import { Invoice_TTL, Redis_Geo } from "./redis_geo.service";
+import { Redis_Geo } from "./redis_geo.service";
 import { Redis } from "@/common/services/redis.service";
+import { TTL_Time } from "@/common/utils/enum.control";
 
 /**
  * Description placeholder
@@ -19,23 +20,8 @@ import { Redis } from "@/common/services/redis.service";
  * @typedef {Coord}
  */
 export interface Coord {
-    /**
- * Description placeholder
- *
- * @type {number}
- */
     latitude: number;
-    /**
- * Description placeholder
- *
- * @type {number}
- */
     longitude: number;
-    /**
- * Description placeholder
- *
- * @type {string}
- */
     address: string;
 }
 
@@ -116,7 +102,7 @@ export class Delivery_Tracker {
        * @param addresses 
        * @returns 
        */
-    async trans_Coord(address: string | string[]): Promise<Coord | Coord[]> {
+    async trans_Coord(address: string | string[]): Promise<Coord[]> {
 
         const checked_address = Array.isArray(address) ? address : [address];
 
@@ -129,7 +115,7 @@ export class Delivery_Tracker {
                 return coord;
             })
         )
-        return Array.isArray(address) ? coords : coords[0];
+        return coords
     }
 
     /**
@@ -149,44 +135,6 @@ export class Delivery_Tracker {
         return address;
     }
 
-
-    // //! 내 주소와 송장 주소가 100m 이상으로 크게 나서 폐기..
-    // async save_my_invoice(partial_name: string, address: string, user_id: string) {
-
-    //     // 송장 정보에서 부분적임 이름, 주소를 가져옴.
-    //     // 송장주소를 좌표로 변환, 저장된 주소도 좌표로 변환
-    //     // 첫글짜 이름이 포함되어 있고, 송장 주소와 저장된 주소의 좌표 사이가 1km이하이면 같은걸로
-
-    //     const similiar_addresses = await this.address_service.find_similar_address(parseInt(user_id), partial_name);
-    //     //유저 주소에서 유저아이디와 수신자 이름을 통해 이름이 비슷한 주소들을 가져옴.
-
-    //     const extract_addresses = similiar_addresses.map(address => address.base_address);
-
-    //     const user_Coord: Coord[] = await Promise.all(
-    //         extract_addresses.map(async (address) => {
-    //             return await this.change_address_to_Coord(address);
-    //         }))
-    //     // 유저의 주소들을 좌표로 변환
-
-    //     const invoice_coord: Coord = await this.change_address_to_Coord(address);
-    //     // 송장의 주소를 좌표로 변환
-
-
-    //     // 유저의 주소 좌표들을 redis에 저장
-    //     await this.redis_geo.store_redis_map(user_Coord, user_id, Invoice_TTL.user);
-
-    //     //저장한 좌표들을 비교
-    //     const search_radius = await this.redis_geo.search_places(invoice_coord, user_id, 100, 'm');
-
-    //     if (search_radius?.length !== 0) { // 100m이내에 있으면
-    //         search_radius?.length
-    //     }
-
-    //     // 저장한 좌표들을 비교 및 계산
-
-    //     //similiar_address.map((address))
-
-    // }
 
 
     /**
@@ -243,7 +191,7 @@ export class Delivery_Tracker {
      * @param {string} invoice_number 
      * @returns {Promise<Coord[]>} 
      */
-    async get_coord(invoice_number: string): Promise<Coord | Coord[]> {
+    async get_coord(invoice_number: string): Promise< Coord[]> {
 
         // 1. 출발지와 도착지 주소 추출
         const d_and_a_address = await this.get_depart_and_arrival_addresses(invoice_number);
@@ -258,7 +206,7 @@ export class Delivery_Tracker {
         // filtered_addresses.unshift(start_address); // 배열 제일 앞에 추가
         // filtered_addresses.push(end_address); // 배열 제일 뒤에 추가
 
-        const coords: Coord | Coord[] = await this.trans_Coord(total_addresses);
+        const coords: Coord[] = await this.trans_Coord(total_addresses);
 
         await this.redis_geo.store_redis_map(coords, invoice_number);
 
@@ -307,39 +255,17 @@ export class Delivery_Tracker {
         await this.redis.getClient().lTrim(key, 0, this.MAX_CACHE_SIZE - 1);
         // 0(최신꺼 부터) 9(10개까지의) 인덱스만 남김
 
-        await this.redis.getClient().expire(key, Invoice_TTL.my_invoice);
+        await this.redis.getClient().expire(key, TTL_Time.Invoice_TTL);
     }
 
     async find_my_invoice_list(user_id: number): Promise<string[]> {
 
         const key = this.CACHE_KEY(user_id);
         const cached_invoice_list = await this.redis.getClient().lRange(key, 0, -1);
-        await this.redis.getClient().expire(key, Invoice_TTL.my_invoice);
+        await this.redis.getClient().expire(key, TTL_Time.Invoice_TTL);
         return cached_invoice_list;
     }
 }
 
-// async function tests(): Promise<void> {
 
-//     const env = new EnvConfig();
-//     const redis = new Redis(env);
-//     await redis.initialize();
-//     const a = new CJ_Delivery_Tracker();
-//     const b = new PublicMapApi(env);
-//     const db_options = new DatabaseConfig(env);
-
-//     const db = new Database(db_options);
-//     await db.initialize();
-//     const c = new CJ_TerminalRepository(db);
-//     const d = new AddressRepository(db);
-
-
-//     console.log(await d.read_one({ id: 11 }));
-
-//     const test = new Delivery_Tracker(a, b, c, redis);
-//     console.log(await test.tracker_coord('595320445933'));
-//     console.log(await test.track_invoice('595320445933'));
-// }
-
-//tests();
 

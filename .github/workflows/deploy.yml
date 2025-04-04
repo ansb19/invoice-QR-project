@@ -57,6 +57,7 @@ jobs:
 
           echo REDIS_REMOTE_URL=${{ secrets.REDIS_REMOTE_URL }} >> .env
           echo REDIS_LOCAL_URL=${{ secrets.REDIS_LOCAL_URL }} >> .env 
+          echo REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }} >> .env 
 
           echo SALT_ROUNDS=${{ secrets.SALT_ROUNDS }} >> .env 
 

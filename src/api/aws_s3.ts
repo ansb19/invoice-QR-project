@@ -17,6 +17,7 @@ import fs from "fs";
 import QRCode from "qrcode";
 import { ContentType } from "routing-controllers";
 import { ExternalApiError } from "@/common/exceptions/app.error";
+import { logger } from "@/common/logging/logger";
 
 @Service()
 export class AWS_S3 {
@@ -34,6 +35,7 @@ export class AWS_S3 {
 
         });
         this.bucket_name = this.config.AWS_S3_BUCKNAME;
+
     }
 
     public async upload_file(file_name: string, buffer: Buffer): Promise<string | null> {

@@ -19,9 +19,11 @@ export class Redis {
                 ? this.config.REDIS_REMOTE_URL
                 : this.config.REDIS_LOCAL_URL
 
+        const password = this.config.REDIS_PASSWORD;
+
         logger.info(`Initializing Redis client with URL: ${redisUrl}`);
 
-        this.client = createClient({ url: redisUrl });
+        this.client = createClient({ url: redisUrl, password: password });
 
     }
 

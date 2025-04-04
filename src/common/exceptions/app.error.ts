@@ -22,6 +22,12 @@ export class AppError extends Error {
     }
 }
 
+export class NotSessionError extends AppError{
+    constructor(message = "세션이 존재하지 않습니다", cause?: Error ){
+        super(message, 204, cause);
+    }
+}
+
 export class MissingEnvironmentVariableError extends AppError {
     constructor(variableName: string, cause?: Error) {
         super(`환경 변수 "${variableName}"을 찾을 수 없습니다.`, 404, cause);
@@ -81,3 +87,9 @@ export class DuplicationError extends AppError {
         super(message, 303, cause);
     }
 }
+
+export class CacheStoreError extends AppError {
+    constructor(message = "캐시 저장 실패", cause?: Error) {
+      super(message, 500, cause);
+    }
+  }

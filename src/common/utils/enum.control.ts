@@ -4,10 +4,15 @@ export enum UserType {
 }
 
 export enum TTL_Time {
-    LOGIN_WEB_TTL = 1000 * 60 * 30,
-    LOGIN_APP_TTL = 1000 * 60 * 60 * 24 * 30,
+    LOGIN_WEB_TTL = 1000 * 60 * 30, //30분
+    LOGIN_APP_TTL = 1000 * 60 * 60 * 24 * 30, //30분
     EMAIL_CERT_TTL = 1000 * 60 * 10,
     SMS_CERT_TTL = 1000 * 60 * 5,
+    //세션 관련만 1000을 더 곱셈 해주어야함
+
+    CACHE_TTL = 60 * 5, // 5분
+    CHATBOT_TTL = 60 * 30, // 30분 
+    Invoice_TTL = 60 * 60 * 24, // 1일
 }
 
 export enum Routers {

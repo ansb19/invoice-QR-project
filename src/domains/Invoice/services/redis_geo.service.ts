@@ -4,13 +4,11 @@ import { Coord } from "./delivery_tracker.service";
 import { GeoReplyWith, } from "redis";
 import { EnvConfig } from "@/config/env.config";
 import "reflect-metadata";
+import { TTL_Time } from "@/common/utils/enum.control";
 
 export type GeoUnits = 'm' | 'km' | 'mi' | 'ft';
 
-export enum Invoice_TTL {
-    default = 60 * 60 * 24,
-    my_invoice = 60 * 60 * 24,
-}
+
 
 @Service()
 export class Redis_Geo {
@@ -23,7 +21,7 @@ export class Redis_Geo {
      * @param keyword // 그룹화 시킬 키워드 (key)
      * @param TTL 유효 시간 설정 // 기본값 1일
      */
-    async store_redis_map(coords: Coord[] | Coord, keyword: string, TTL: Invoice_TTL = Invoice_TTL.default): Promise<void> {
+    async store_redis_map(coords: Coord[] | Coord, keyword: string, TTL: TTL_Time = TTL_Time.Invoice_TTL): Promise<void> {
 
         const coords_array = Array.isArray(coords) ? coords : [coords];
 

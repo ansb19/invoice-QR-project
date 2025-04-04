@@ -38,6 +38,7 @@ export class EnvConfig {
     // Redis
     readonly REDIS_REMOTE_URL: string;
     readonly REDIS_LOCAL_URL: string;
+    readonly REDIS_PASSWORD: string;
 
     // Bcrypt password
     readonly SALT_ROUNDS: number;
@@ -58,7 +59,7 @@ export class EnvConfig {
     readonly KAKAO_TEST_REDIRECT_URI_REMOTE: string;
     readonly KAKAO_TEST_CLIENT_SECRET: string;
 
-    readonly  DELIVERY_TRACKER_CLIENT_ID: string;
+    readonly DELIVERY_TRACKER_CLIENT_ID: string;
     readonly DELIVERY_TRACKER_CLIENT_SECRET: string;
 
     readonly SMART_DELIVERY_API_KEY: string;
@@ -107,6 +108,7 @@ export class EnvConfig {
         // Redis
         this.REDIS_REMOTE_URL = this.getEnvVariable('REDIS_REMOTE_URL');
         this.REDIS_LOCAL_URL = this.getEnvVariable('REDIS_LOCAL_URL');
+        this.REDIS_PASSWORD = this.getEnvVariable('REDIS_PASSWORD');
 
         //password salt
         this.SALT_ROUNDS = this.getEnvVariableAsNumber('SALT_ROUNDS', 10);
@@ -114,7 +116,7 @@ export class EnvConfig {
         //session secret
         this.SESSION_SECRET = this.getEnvVariable('SESSION_SECRET');
 
-        
+
 
         // Kakao
         this.KAKAO_REST_API_KEY = this.getEnvVariable('KAKAO_REST_API_KEY');
@@ -130,18 +132,18 @@ export class EnvConfig {
 
         this.DELIVERY_TRACKER_CLIENT_ID = this.getEnvVariable('DELIVERY_TRACKER_CLIENT_ID');
         this.DELIVERY_TRACKER_CLIENT_SECRET = this.getEnvVariable('DELIVERY_TRACKER_CLIENT_SECRET');
-        
+
         this.SMART_DELIVERY_API_KEY = this.getEnvVariable('SMART_DELIVERY_API_KEY');
 
-        this.CHATGPT_API_KEY= this.getEnvVariable('CHATGPT_API_KEY');
+        this.CHATGPT_API_KEY = this.getEnvVariable('CHATGPT_API_KEY');
         this.CHATGPT_PROJECT_ID = this.getEnvVariable('CHATGPT_PROJECT_ID');
 
         this.PUBLIC_MAP_API_KEY = this.getEnvVariable('PUBLIC_MAP_API_KEY');
 
-        this.AWS_S3_ACCESS_KEY= this.getEnvVariable('AWS_S3_ACCESS_KEY');
-        this.AWS_S3_ACCESS_SECRET= this.getEnvVariable('AWS_S3_ACCESS_SECRET');
+        this.AWS_S3_ACCESS_KEY = this.getEnvVariable('AWS_S3_ACCESS_KEY');
+        this.AWS_S3_ACCESS_SECRET = this.getEnvVariable('AWS_S3_ACCESS_SECRET');
         this.AWS_S3_REGION = this.getEnvVariable('AWS_S3_REGION');
-        this.AWS_S3_BUCKNAME= this.getEnvVariable('AWS_S3_BUCKNAME');
+        this.AWS_S3_BUCKNAME = this.getEnvVariable('AWS_S3_BUCKNAME');
 
         console.log('EnvConfig initialization completed.');
     }

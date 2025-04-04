@@ -1,5 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
 
+@Index(['name', 'address'])
 @Entity("CJ_TERMINAL")
 export class CJ_Terminal {
     @PrimaryGeneratedColumn({ type: "bigint" })

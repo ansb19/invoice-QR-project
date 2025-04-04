@@ -3,10 +3,11 @@ import Container, { Inject, Service } from "typedi";
 import { UserService } from "../services/user.service";
 import { Request, Response } from 'express';
 import { ResponseSocialUserDTO } from "../dtos/social_user.dto";
-import { ValidationError } from "@/common/exceptions/app.error";
+import { ExternalApiError, NotSessionError, ValidationError } from "@/common/exceptions/app.error";
 import session from "express-session";
 import { EnvConfig } from "@/config/env.config";
-import { resolve } from "path";
+
+import { plainToInstance } from "class-transformer";
 
 
 @Service()
@@ -17,27 +18,13 @@ export class UserController {
 
     }
 
-    private async getSessionUser(req: Request): Promise<ResponseSocialUserDTO | null> {
-        const sessionId = req.headers.authorization?.split(" ")[1];
 
-        if (!sessionId) return null;
-
-        const session_data: ResponseSocialUserDTO | null = await new Promise((resolve, reject) => {
-            req.sessionStore.get(sessionId, (err, session) => {
-                if (err) reject(err);
-                resolve(session?.user || null);
-            });
-        });
-
-        return session_data;
-    }
 
     private async destroySession(session: session.Session & Partial<session.SessionData>, res: Response) {
         await new Promise<void>((resolve, reject) => {
             session.destroy((err) => {
                 if (err) {
-                    console.error('세션 제거 오류:', err);
-                    return reject(err);
+                    throw new ValidationError("세션 제거 오류", err);
                 }
                 resolve();
             });
@@ -51,7 +38,9 @@ export class UserController {
     public async signup_login_kakao(@Param('code') code: string, @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
 
         const new_user = await this.user.kakao_signup(code);
-        const response_user = new ResponseSocialUserDTO(new_user);
+        const response_user = plainToInstance(ResponseSocialUserDTO, new_user, {
+            excludeExtraneousValues: true,
+        })
 
         console.log('받은 요청', req.hostname);
 
@@ -62,8 +51,7 @@ export class UserController {
         await new Promise<void>((resolve, reject) => {
             session.save((err) => {
                 if (err) {
-                    console.error('세션 저장 오류:', err);
-                    return res.status(500).json({ error: "세션 제거 중 오류 발생" });
+                    throw new ValidationError("세션 저장 오류", err);
                 }
                 resolve();
             });
@@ -81,7 +69,10 @@ export class UserController {
     @HttpCode(201)
     public kakao_signup_url() {
 
-        return this.user.kakao_signup_url();
+        const url = this.user.kakao_signup_url();
+        return {
+            data: url
+        }
     }
 
     @Post('/logout/kakao')
@@ -90,10 +81,10 @@ export class UserController {
         try {
             console.log(`세션: ${session?.user}`);
 
-            const user = session.user || await this.getSessionUser(req);
+            const user = session.user;
 
             if (!user)
-                return res.status(401).json({ message: "해당 세션을 찾을수 없습니다. 로그아웃된 상태입니다" });
+                throw new NotSessionError();
 
             await this.user.kakao_logout(user.id);
             await this.destroySession(session, res);
@@ -103,8 +94,7 @@ export class UserController {
             }
 
         } catch (error) {
-            console.error("로그아웃 처리 중 에러:", error);
-            return res.status(500).json({ error: "서버 오류로 인해 로그아웃 실패" });
+            throw new ExternalApiError("카카오 오류로 인해 로그아웃 실패");
         }
     }
 
@@ -114,10 +104,10 @@ export class UserController {
     public async kakao_withdrawl(@Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
         try {
 
-            const user = session.user || await this.getSessionUser(req);
+            const user = session.user;
 
             if (!user)
-                return res.status(401).json({ message: "해당 세션을 찾을수 없습니다. 로그아웃된 상태입니다" });
+                throw new NotSessionError();
 
             await this.user.kakao_withdrawal(user.id);
             await this.destroySession(session, res);
@@ -127,8 +117,7 @@ export class UserController {
             }
 
         } catch (error) {
-            console.error("회원탈퇴 처리 중 에러:", error);
-            return res.status(500).json({ error: "서버 오류로 인해 회원탈퇴 실패" });
+            throw new ExternalApiError("카카오 오류로 인해 회원탈퇴 실패");
         }
     }
 
@@ -140,23 +129,15 @@ export class UserController {
         // r_session = req.session 세션 전체 정보 쿠키, 세션 내용(user_id)
         // req.sessionID = req.session.id = redis session key
         // r_session.user_id = req.session.user_id =  세션 내용(user_id)
+        const user = session.user;
 
-        try {
-            const user = session.user || await this.getSessionUser(req);
+        if (!user)
+            throw new NotSessionError();
 
-            if (!user)
-                return res.status(401).json({ message: "해당 세션을 찾을수 없습니다. 로그아웃된 상태입니다" });
-
-            return {
-                message: "세션 사용자 조회 성공",
-                data: user,
-            }
-
-        } catch (error) {
-            console.error("세션 조회 중 오류 발생:", error);
-            return res.status(500).json({ message: "서버 오류" });
+        return {
+            message: "세션 사용자 조회 성공",
+            data: user,
         }
-
 
     }
 

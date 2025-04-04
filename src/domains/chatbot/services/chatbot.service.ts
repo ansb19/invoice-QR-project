@@ -1,6 +1,7 @@
 import { Chat_Message, CHATGPT_API } from "@/api/chatgpt_ai";
 import { ExternalApiError, NotFoundError } from "@/common/exceptions/app.error";
 import { Redis } from "@/common/services/redis.service";
+import { TTL_Time } from "@/common/utils/enum.control";
 import { Message } from "coolsms-node-sdk";
 import { Inject, Service } from "typedi";
 
@@ -52,6 +53,7 @@ export class ChatBot {
             const json_answer = JSON.stringify(chat_answer);
 
             await this.redis.getClient().rPush(chat_key, json_answer);
+            await this.redis.getClient().expire(chat_key, TTL_Time.CHATBOT_TTL);
         } catch (error) {
             throw new ExternalApiError("채팅 답변 저장 실패");
         }
@@ -68,8 +70,9 @@ export class ChatBot {
 
             
             await this.redis.getClient().rPush(chat_key, json_question);
+            await this.redis.getClient().expire(chat_key, TTL_Time.CHATBOT_TTL);
         } catch (error) {
-            throw new ExternalApiError("채팅 질문문 저장 실패");
+            throw new ExternalApiError("채팅 질문 저장 실패");
         }
     }
 

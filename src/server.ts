@@ -7,26 +7,33 @@ import { useContainer as useValidatorContainer, Validate, Validator } from 'clas
 import { useExpressServer, useContainer as useControllerContainer } from 'routing-controllers';
 import { EnvConfig } from './config/env.config';
 import { logger } from './common/logging/logger';
-import { LoggerMiddlerWare } from './middleware/logger.middleware';
+import { LoggerMiddlerWare } from './common/middleware/logger.middleware';
 import { Database } from './config/database/Database';
 import { Redis } from './common/services/redis.service';
 import { NotFoundError } from './common/exceptions/app.error';
 import { UserController } from './domains/user/controllers/user.controller';
 import cron from 'node-cron';
 import { UserService } from './domains/user/services/user.service';
-import { SessionMiddleware } from './middleware/session.middleware';
+import { SessionMiddleware } from './common/middleware/session.middleware';
 import { InvoiceController } from './domains/Invoice/controllers/invoice.controller';
 import { AddressController } from './domains/user/controllers/address.controller';
 import { ChatBotController } from './domains/chatbot/controllers/chatbot.controller';
 import { ResponseSocialUserDTO } from './domains/user/dtos/social_user.dto';
+import { ErrorHandleMiddleware } from './common/middleware/error.handle.middleware';
+import { CorsMiddleware } from './common/middleware/cors.middleware';
+import { CacheGetMiddleware } from './common/middleware/cache.get.middleware';
+import { RateLimitMiddleware } from './common/middleware/rate.limit.middleware';
+import { SessionUserMiddleware } from './common/middleware/session.user.middleware';
+import { ResponseFormatInterceptor } from './common/intercetors/response.format.interceptor';
+import { CacheSetInterceptor } from './common/intercetors/cache.set.interceptor';
 
 declare module 'express-session' {
     interface SessionData {
-      user_id?: number;
-      invoice_number: string;
-      user: ResponseSocialUserDTO;
+        user_id?: number;
+        invoice_number: string;
+        user: ResponseSocialUserDTO | null;
     }
-  }
+}
 
 const env_config = Container.get(EnvConfig);
 
@@ -53,7 +60,7 @@ async function startServer() {
         // 데이터베이스 연결 초기화
         const database = Container.get(Database);
         await database.initialize();
-        
+
         await database.runMigrations(); // 프로덕션 환경에서는 비활성화 가능
 
         // Redis 초기화
@@ -62,10 +69,10 @@ async function startServer() {
 
         // cors , json parsing
         useExpressServer(app, {
-            cors: {
-                origin: true,
-                credentials: true,
-            },
+            // cors: { 수동 cors 설정
+            //     origin: true,
+            //     credentials: true,
+            // },
             //routePrefix: '/',
             controllers: [
                 // ChatController,
@@ -75,8 +82,9 @@ async function startServer() {
                 AddressController,
                 ChatBotController,
             ],
-            middlewares: [LoggerMiddlerWare, SessionMiddleware,],
-            interceptors: [],
+            middlewares: [LoggerMiddlerWare, RateLimitMiddleware, CorsMiddleware, SessionMiddleware, SessionUserMiddleware, //전처리
+                 ErrorHandleMiddleware], //후처리
+            interceptors: [ResponseFormatInterceptor, CacheSetInterceptor  ],
             classTransformer: true,
             classToPlainTransformOptions: {
                 enableImplicitConversion: true,
@@ -85,7 +93,7 @@ async function startServer() {
                 enableImplicitConversion: true,
             },
             validation: true, //class-validator 활성화
-            
+
             development: env_config.NODE_ENV !== "production",
             defaultErrorHandler: false,
             // defaultErrorHandler: true → errorOverridingMap이 적용됨 ✅
@@ -111,8 +119,8 @@ async function startServer() {
 
         })
 
-        app.set("trust proxy", true); // 프로식 서버 설정
-        
+        app.set("trust proxy", 1); // 프로식 서버 설정
+
         // 기본 라우트
         app.get("/", (req, res) => {
             const currentTime = new Date();
@@ -122,13 +130,13 @@ async function startServer() {
 
         app.get('/favicon.ico', (req, res) => { res.status(204).end() });
 
-        // 잘못된 라우트 핸들링
-        app.use((req, res, next) => {
+
+        app.use('*', (req, res, next) => {
             if (!res.headersSent) {
-                logger.warn(`Invalid route accessed url: ${req.originalUrl}`);
-                next(new NotFoundError("요청한 경로를 찾을 수 없습니다"));
+              logger.warn(`Invalid route accessed url: ${req.originalUrl}`);
+              next(new NotFoundError("요청한 API 라우터를 찾을 수 없습니다."));
             }
-        });
+          });
 
         // 서버 실행
         const server = app.listen(port, "0.0.0.0", () => {

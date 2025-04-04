@@ -5,6 +5,8 @@ import session from "express-session";
 import { Request, Response } from 'express';
 import { ResponseSocialUserDTO } from "@/domains/user/dtos/social_user.dto";
 import { Chat_Message } from "@/api/chatgpt_ai";
+import { NotFoundError, NotSessionError } from "@/common/exceptions/app.error";
+import { logger } from "@/common/logging/logger";
 
 @Service()
 @JsonController('/chatbot')
@@ -13,28 +15,6 @@ export class ChatBotController {
 
     }
 
-    private async getSessionUser(req: Request): Promise<ResponseSocialUserDTO | null> {
-        const session_id = req.headers.authorization?.split(" ")[1];
-
-        if (!session_id)
-            return null;
-
-        const session_data: ResponseSocialUserDTO | null = await new Promise((resolve, reject) => {
-            req.sessionStore.get(session_id, (err, session) => {
-                if (err) {
-                    reject(err);
-                }
-                else if (!session)
-                    resolve(null);
-                else
-                    resolve(session.user);
-
-            });
-        });
-
-        return session_data;
-
-    }
 
     @Post('')
     @HttpCode(201)
@@ -44,10 +24,9 @@ export class ChatBotController {
             if (!body)
                 return res.status(400).json({ message: "메세지가 없습니다" });
 
-            const user = session.user || await this.getSessionUser(req);
-
+            const user = session.user;
             if (!user)
-                return res.status(401).json({ message: "세션이 유효하지 않음" });
+                throw new NotSessionError();
 
             const answer = await this.chatbot.create_chatbot(body.content, user.id);
 
@@ -67,11 +46,12 @@ export class ChatBotController {
     public async read_chatbot_list(@Session() session: session.Session & Partial<session.SessionData>, @Req() req: Request, @Res() res: Response) {
 
         try {
-            const user = session.user || await this.getSessionUser(req);
+            const user = session.user;
             if (!user) {
-                return res.status(401).json({ message: "세션이 유효하지 않음" });
+                throw new NotSessionError();
             }
 
+            logger.info("챗봇 기록 조회");
             const history: Chat_Message[] = await this.chatbot.load_history(user.id);
 
             return {

@@ -1,9 +1,10 @@
-import { Body, Delete, Get, HttpCode, JsonController, NotFoundError, Param, Patch, Post, Put, Session } from "routing-controllers";
+import { Body, Delete, Get, HttpCode, JsonController, Param, Patch, Post, Put, Session, UseAfter, UseBefore } from "routing-controllers";
 import { Inject, Service } from "typedi";
 import { AddressService } from "../services/address.service";
 import { Address } from "../entities/address.entity";
 import { CreateAddressDTO, ResponseAddressDTO, UpdateAddressDTO } from "../dtos/address.dto";
 import { plainToInstance } from 'class-transformer';
+import { NotSessionError } from "@/common/exceptions/app.error";
 
 
 @Service()
@@ -15,13 +16,16 @@ export class AddressController {
 
     @Post('/')
     @HttpCode(201)
+
     public async create_address(@Body() address: CreateAddressDTO) {
 
         const entity: Partial<Address> = plainToInstance(Address, address);
 
         const new_address = await this.address.create_address(entity);
 
-        const response_address = new ResponseAddressDTO(new_address);
+        const response_address = plainToInstance(ResponseAddressDTO, new_address, {
+            excludeExtraneousValues: true,
+        })
         return {
             message: "주소 생성 성공",
             data: response_address,
@@ -36,7 +40,9 @@ export class AddressController {
 
         const update_address = await this.address.update_address(id, entity);
 
-        const response_address = new ResponseAddressDTO(update_address);
+        const response_address = plainToInstance(ResponseAddressDTO, update_address, {
+            excludeExtraneousValues: true,
+        })
         return {
             message: "주소 변경 성공",
             data: response_address,
@@ -47,19 +53,21 @@ export class AddressController {
     @HttpCode(200)
     public async read_addresses_list(@Session() session: any) {
 
-        if(!session.user_id)
-            throw new NotFoundError("세션이 존재하지 않습니다");
+        if (!session.user_id)
+            throw new NotSessionError()
 
         const find_addresses = await this.address.read_addresses_list(session.user_id);
 
-        const response_addresses = find_addresses.map((address) => new ResponseAddressDTO(address))
+        const response_addresses = find_addresses.map((address) => plainToInstance(ResponseAddressDTO, address, {
+            excludeExtraneousValues: true,
+        }))
 
         return {
             message: "주소 리스트 조회 성공",
             data: response_addresses,
         }
     }
-    
+
 
     @Get('/:id')
     @HttpCode(200)
@@ -67,7 +75,9 @@ export class AddressController {
 
         const find_address = await this.address.read_one_address(id);
 
-        const response_address = new ResponseAddressDTO(find_address);
+        const response_address = plainToInstance(ResponseAddressDTO, find_address, {
+            excludeExtraneousValues: true,
+        })
 
         return {
             message: "주소 조회 성공",

@@ -1,6 +1,5 @@
 import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsPhoneNumber, IsString, Length } from 'class-validator';
-import { Address } from '../entities/address.entity';
-import { Service } from 'typedi';
+import { Expose } from 'class-transformer';
 
 export class CreateAddressDTO {
 
@@ -106,27 +105,26 @@ export class UpdateAddressDTO {
 
 export class ResponseAddressDTO {
 
-    id: number;
-    name: string;
-    is_default: boolean;
-    base_address: string;
+    @Expose()
+    id!: number;
+    @Expose()
+    name!: string;
+    @Expose()
+    is_default!: boolean;
+    @Expose()
+    base_address!: string;
+    @Expose()
     detail_address?: string;
-    receiver_name: string;
-    receiver_phone_number1: string;
+    @Expose()
+    receiver_name!: string;
+    @Expose()
+    receiver_phone_number1!: string;
+    @Expose()
     receiver_phone_number2?: string;
+    @Expose()
     zone_number?: string;
+    @Expose()
     zip_code?: string;
 
-    constructor(entity: Address) {
-        this.id = entity.id;
-        this.name = entity.name;
-        this.is_default = entity.is_default;
-        this.base_address = entity.base_address;
-        this.detail_address = entity.detail_address;
-        this.receiver_name = entity.receiver_name;
-        this.receiver_phone_number1 = entity.receiver_phone_number1;
-        this.receiver_phone_number2 = entity.receiver_phone_number2;
-        this.zone_number = entity.zone_number;
-        this.zip_code = entity.zip_code;
-    }
+    
 }

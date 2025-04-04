@@ -8,6 +8,7 @@ import { EnvConfig } from "@/config/env.config";
 import session from "express-session";
 import { TTL_Time } from "@/common/utils/enum.control";
 
+
 @Service()
 @Middleware({ type: 'before' }) //요청 -> 컨트롤러 사이에 사용
 export class SessionMiddleware implements ExpressMiddlewareInterface {
@@ -34,7 +35,7 @@ export class SessionMiddleware implements ExpressMiddlewareInterface {
                 secure: this.config.NODE_ENV === "production",
                 maxAge: userAgent.includes('Mozilla') ? TTL_Time.LOGIN_WEB_TTL : TTL_Time.LOGIN_APP_TTL // 세션 유형별로 다르게 설정 가능
             },
-            rolling: false, //모든 요청(Request)마다 세션의 maxAge(만료 시간)가 리셋됨
+            rolling: false, //모든 요청(Request)마다 세션의 maxAge(만료 시간)가 리셋됨 // 수동 갱신
 
         });
 
