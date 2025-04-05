@@ -35,20 +35,22 @@ export class KakaoLoginApi {
             : this.config.KAKAO_TEST_CLIENT_SECRET;
 
 
-
         logger.info("KakaoClient initialized successfully", {
             clientID: this.clientID,
         });
     }
 
-    public get_url(redirect_url: string): string {
-        const loginUrl =
-            `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${this.clientID}&redirect_uri=${redirect_url}`;
+    public get_url(front_redirect_url: string, backend_redirect_url?: string): string {
+
+
+        const loginUrl = backend_redirect_url 
+            ? `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${this.clientID}&redirect_uri=${encodeURIComponent(backend_redirect_url)}&state=${encodeURIComponent(front_redirect_url)}`
+            : `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${this.clientID}&redirect_uri=${encodeURIComponent(front_redirect_url)}`;
         return loginUrl;
     }
 
     //토큰 요청
-    public async request_token(code: string, redirect_url: string): Promise<Token> {
+    public async request_token(code: string, redirect_url?: string): Promise<Token> {
         try {
             logger.info("Requesting Kakao token...");
             const response = await axiosKauth.post('/oauth/token',

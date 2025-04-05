@@ -21,12 +21,12 @@ export class UserService {
 
     }
 
-    public kakao_signup_url(redirect_url:string): string {
-        const url = this.kakaoapi.get_url(redirect_url);
+    public kakao_signup_url(front_redirect_url:string, backend_redirect_url?: string): string {
+        const url = this.kakaoapi.get_url(front_redirect_url, backend_redirect_url);
         return url;
     }
 
-    public async kakao_signup(code: string, redirect_url: string): Promise<SocialUser> {
+    public async kakao_signup(code: string, redirect_url?: string): Promise<SocialUser> {
         try {
 
             const data = await this.kakaoapi.request_token(code, redirect_url);

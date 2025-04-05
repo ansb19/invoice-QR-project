@@ -3,7 +3,7 @@ import Container, { Inject, Service } from "typedi";
 import { UserService } from "../services/user.service";
 import { Request, Response } from 'express';
 import { ResponseSocialUserDTO } from "../dtos/social_user.dto";
-import { ExternalApiError, NotSessionError, ValidationError } from "@/common/exceptions/app.error";
+import { ExternalApiError, NotSessionError, ValidationError, UnauthorizedError } from "@/common/exceptions/app.error";
 import session from "express-session";
 import { EnvConfig } from "@/config/env.config";
 
@@ -33,36 +33,51 @@ export class UserController {
         res.clearCookie(this.env.FRONT_COOKIE_NAME); // 쿠키 제거
     }
 
-    @Get('/signup/kakao/:code') // 백엔드에서 대부분 처리해서 get으로 받아야함
+    @Get('/signup/kakao') // 백엔드에서 대부분 처리해서 get으로 받아야함
     @HttpCode(200)
-    public async signup_login_kakao(@Param('code') code: string, @QueryParam('redirect_url') redirect_url: string,
-        @Session() session: session.Session & Partial<session.SessionData>, @Res() res: Response, @Req() req: Request) {
+    public async signup_login_kakao(@QueryParam('code') code: string, @Session() session: session.Session & Partial<session.SessionData>,
+        @Res() res: Response, @Req() req: Request, @QueryParam('redirect_url') redirect_url?: string,
+        @QueryParam('state') state?: string,) {
 
-        const new_user = await this.user.kakao_signup(code, redirect_url);
-        const response_user = plainToInstance(ResponseSocialUserDTO, new_user, {
-            excludeExtraneousValues: true,
-        })
+        if (state) { //앱
+            const new_user = await this.user.kakao_signup(code, state);
+            const response_user = plainToInstance(ResponseSocialUserDTO, new_user, {
+                excludeExtraneousValues: true,
+            })
 
-        console.log('받은 요청', req.hostname);
-
-        session.user = response_user;
-
-        //const userAgent = req.headers['user-agent'] || '';
-
-        await new Promise<void>((resolve, reject) => {
-            session.save((err) => {
-                if (err) {
-                    throw new ValidationError("세션 저장 오류", err);
-                }
-                resolve();
-            });
-        });
-
-        return {
-            message: "회원 정보 세션 전송",
-            data: session.user,  //세션 유저 정보 전송
-            session_id: session.id,//세션 아이디 전송
+            session.user = response_user; //백엔드의 세션을 사용
+            
+            return res.redirect(`${state}?session_id=${session.id}`);
         }
+        else if (redirect_url) { //웹
+            const new_user = await this.user.kakao_signup(code, redirect_url);
+            const response_user = plainToInstance(ResponseSocialUserDTO, new_user, {
+                excludeExtraneousValues: true,
+            })
+
+            session.user = response_user; //프론트의 세션을 사용
+
+            await new Promise<void>((resolve, reject) => {
+                session.save((err) => {
+                    if (err) {
+                        throw new ValidationError("세션 저장 오류", err);
+                    }
+                    resolve();
+                });
+            });
+
+            return {
+                message: "회원 정보 세션 전송",
+                data: session.user,  //세션 유저 정보 전송
+                session_id: session.id,//세션 아이디 전송
+            }
+        }
+        else {
+            throw new UnauthorizedError("카카오 크로스 환경 설정 중 문제 발생");
+        }
+
+
+
 
     }
 
@@ -70,8 +85,18 @@ export class UserController {
     @HttpCode(201)
     public kakao_signup_url(@Req() req: Request, @Body() body: { redirect_url: string }) {
 
+        const backend_redirect_url = `${req.protocol}://${req.headers.host}${req.originalUrl}/user/signup/kakao`;
         const { redirect_url } = body;
-        const url = this.user.kakao_signup_url(redirect_url);
+
+        const user_agent = req.headers["user-agent"] || '';
+
+        let url;
+        if (user_agent.includes('Mozilla')) { // 웹
+            url = this.user.kakao_signup_url(redirect_url);
+        }
+        else { // 앱앱
+            url = this.user.kakao_signup_url(redirect_url, backend_redirect_url);
+        }
         return {
             data: url
         }
