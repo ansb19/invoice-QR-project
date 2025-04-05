@@ -8,6 +8,7 @@ import session from "express-session";
 import { EnvConfig } from "@/config/env.config";
 
 import { plainToInstance } from "class-transformer";
+import { logger } from "@/common/logging/logger";
 
 
 @Service()
@@ -40,7 +41,11 @@ export class UserController {
         @QueryParam('state', { required: false }) state?: string,) {
 
         if (state) { //앱
-            const new_user = await this.user.kakao_signup(code, state);
+            
+            logger.info("앱 카카오 로그인");
+            const backend_redirect_url = `${req.protocol}://${req.headers.host}/user/signup/kakao`;
+            
+            const new_user = await this.user.kakao_signup(code, backend_redirect_url);
             const response_user = plainToInstance(ResponseSocialUserDTO, new_user, {
                 excludeExtraneousValues: true,
             })
