@@ -43,7 +43,7 @@ export class KakaoLoginApi {
 
     public get_url(redirect_url: string): string {
         const loginUrl =
-            `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${this.clientID}&redirect_uri=${redirect_url}/response_login`;
+            `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${this.clientID}&redirect_uri=${redirect_url}`;
         return loginUrl;
     }
 
@@ -55,7 +55,7 @@ export class KakaoLoginApi {
                 {
                     grant_type: "authorization_code",
                     client_id: this.clientID,
-                    redirect_uri: `${redirect_url}/response_login`,
+                    redirect_uri: `${redirect_url}`,
                     code: code,
                     client_secret: this.clientSecret
                 },
