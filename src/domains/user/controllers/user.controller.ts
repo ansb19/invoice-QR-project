@@ -85,7 +85,7 @@ export class UserController {
     @HttpCode(201)
     public kakao_signup_url(@Req() req: Request, @Body() body: { redirect_url: string }) {
 
-        const backend_redirect_url = `${req.protocol}://${req.headers.host}${req.originalUrl}/user/signup/kakao`;
+        const backend_redirect_url = `${req.protocol}://${req.headers.host}/user/signup/kakao`;
         const { redirect_url } = body;
 
         const user_agent = req.headers["user-agent"] || '';
