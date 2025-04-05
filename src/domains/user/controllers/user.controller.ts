@@ -36,8 +36,8 @@ export class UserController {
     @Get('/signup/kakao') // 백엔드에서 대부분 처리해서 get으로 받아야함
     @HttpCode(200)
     public async signup_login_kakao(@QueryParam('code') code: string, @Session() session: session.Session & Partial<session.SessionData>,
-        @Res() res: Response, @Req() req: Request, @QueryParam('redirect_url') redirect_url?: string,
-        @QueryParam('state') state?: string,) {
+        @Res() res: Response, @Req() req: Request, @QueryParam('redirect_url', {required: false}) redirect_url?: string,
+        @QueryParam('state', { required: false }) state?: string,) {
 
         if (state) { //앱
             const new_user = await this.user.kakao_signup(code, state);
@@ -46,7 +46,7 @@ export class UserController {
             })
 
             session.user = response_user; //백엔드의 세션을 사용
-            
+
             return res.redirect(`${state}?session_id=${session.id}`);
         }
         else if (redirect_url) { //웹
