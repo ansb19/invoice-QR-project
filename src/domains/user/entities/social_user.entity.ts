@@ -22,8 +22,8 @@ export class SocialUser {
     @Column({ type: 'varchar' })
     account_email!: string;
 
-    @Column({ type: 'varchar' })
-    phone!: string;
+    @Column({ type: 'varchar' , nullable: true})
+    phone?: string;
 
     @Column({ type: "varchar", length: 300 })
     refresh_token!: string;

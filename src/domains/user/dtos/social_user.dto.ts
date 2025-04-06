@@ -15,6 +15,6 @@ export class ResponseSocialUserDTO {
     @Expose()
     account_email!: string;
     @Expose()
-    phone!: string;
+    phone?: string;
 
 }
