@@ -3,7 +3,7 @@ services:
     image: ansb19/invoice_qr:latest
     container_name: invoice_qr
     ports:
-      - "80:80" # EC2의 80번 포트를 컨테이너 내부 포트에 매핑
+      - "3000:3000" # EC2의 80번 포트를 컨테이너 내부 포트에 매핑
     depends_on:
       - redis
     env_file:
